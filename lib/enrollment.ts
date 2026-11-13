@@ -8,7 +8,7 @@ export const editSchema=z.object({title:z.string().trim().min(3).max(100),blurb:
 export const applicationSchema=z.object({slug:z.string().max(90),name:z.string().trim().min(2).max(100),email:z.string().trim().email().max(160).transform(x=>x.toLowerCase()),college:z.string().trim().min(2).max(140),consent:z.literal(true)});
 export const applicationsStatus = (status:string) => status==="open"?"Applications open":status==="closed"?"Applications closed":"Batch announcement soon";
 type Overrides = {slug:string;title:string|null;blurb:string|null;outcome:string|null;days:string|null;schedule:string;mode:string;batch:string;status:string};
-export type Application={id:string;token_hash:string;slug:string;batch:string;name:string;email:string;college:string;created_at:string;amount:number;order_id:string|null;payment_id:string|null;payment_state:string;review_state:string};
+export type Application={id:string;token_hash:string;slug:string;batch:string;name:string;email:string;college:string;created_at:string;amount:number;order_id:string|null;payment_id:string|null;payment_state:string;review_state:string;class_access:number};
 export function db(){if(!cfg.DB)throw new Error("Missing data binding");return cfg.DB}
 export function paymentMode(){const m=cfg.PAYMENTS_MODE;return (m==="test"||m==="live")&&cfg.RAZORPAY_KEY_ID?.startsWith("rzp_"+m+"_")&&cfg.RAZORPAY_KEY_SECRET&&cfg.RAZORPAY_WEBHOOK_SECRET?m:null}
 export async function getCourses(){

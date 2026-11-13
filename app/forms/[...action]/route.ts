@@ -1,4 +1,5 @@
 import {authorizedAdmin,getApplication} from "@/lib/enrollment";
+import {saveClassSessions,setClassAccess} from "@/lib/class-sessions";
 import {getCourse} from "@/lib/courses";
 import {accessCookie,codePattern,refPattern,createApplication,csv,csvHeader,listApplications,saveCourse,updateReview} from "@/lib/form-workflows";
 
@@ -39,16 +40,18 @@ export async function POST(req:Request){
    if(!refPattern.test(id)||!codePattern.test(code)||!await getApplication(id,code))return move("/apply?error=notfound#track");
    return receipt(req,id,code);
   }
-  if(path!=="/forms/admin/course"&&path!=="/forms/admin/review")return text("Not found.",404);
+  if(!["/forms/admin/course","/forms/admin/review","/forms/admin/sessions","/forms/admin/class-access"].includes(path))return text("Not found.",404);
   if(!await authorizedAdmin(req))return text("Administrator sign-in is required.",403);
   if(path.endsWith("/course")){
    const error=await saveCourse(slug,{title:val("title"),blurb:val("blurb"),outcome:val("outcome"),days:Array.from({length:5},(_,i)=>[val("topic"+i),val("practical"+i)]),schedule:val("schedule"),mode:val("mode"),batch:val("batch"),status:val("status")});
    return admin(error??"saved");
   }
-  const done=await updateReview(val("id"),val("review"));
+  if(path.endsWith("/sessions"))return move(redirectTo("/admin",{course:slug,message:await saveClassSessions(slug,val("batch"),val)?"classes-saved":"classes-invalid"})+"#class-schedule");
+  const isAccess=path.endsWith("/class-access");
+  const done=isAccess?await setClassAccess(val("id"),val("grant")):await updateReview(val("id"),val("review"));
   const filter=getCourse(val("filter"))?.slug??"";
   const page=/^[1-9][0-9]{0,4}$/.test(val("page"))?val("page"):"1";
-  return move(redirectTo("/admin",{course:slug,filter,page,message:done?"reviewed":"invalid"})+"#applications");
+  return move(redirectTo("/admin",{course:slug,filter,page,message:done?(isAccess?"access-saved":"reviewed"):(isAccess?"access-invalid":"invalid")})+"#applications");
  }catch(e){
   console.error("Form request failed",path,e instanceof Error?e.name:"Unknown");
   if(path==="/forms/apply")return apply("retry");

@@ -3,7 +3,7 @@ import {applicationSchema,createRef,db,digest,editSchema,lookup,newToken} from "
 
 export const REVIEW_STATES=["submitted","under_review","accepted","declined"] as const;
 export const reviewLabels:Record<string,string>={submitted:"Submitted",under_review:"Under review",accepted:"Accepted",declined:"Declined"};
-export type RecordRow={id:string;slug:string;batch:string;name:string;email:string;college:string;created_at:string;review_state:string;payment_state:string;payment_id:string|null};
+export type RecordRow={id:string;slug:string;batch:string;name:string;email:string;college:string;created_at:string;review_state:string;payment_state:string;payment_id:string|null;class_access:number};
 export const accessCookie="scs_application";
 export const refPattern=/^SCS-[A-F0-9]{20}$/;
 export const codePattern=/^[a-f0-9]{64}$/;
@@ -30,13 +30,13 @@ export async function saveCourse(slug:string,input:unknown){
 
 export async function listApplications(slug="",page=1){
  const match=slug&&getCourse(slug)?slug:"";
- const result=await db().prepare("SELECT id,slug,batch,name,email,college,created_at,review_state,payment_state,payment_id FROM applications WHERE (?='' OR slug=?) ORDER BY created_at DESC,id DESC LIMIT 51 OFFSET ?").bind(match,match,(page-1)*50).all<RecordRow>();
+ const result=await db().prepare("SELECT id,slug,batch,name,email,college,created_at,review_state,payment_state,payment_id,class_access FROM applications WHERE (?='' OR slug=?) ORDER BY created_at DESC,id DESC LIMIT 51 OFFSET ?").bind(match,match,(page-1)*50).all<RecordRow>();
  return {rows:result.results.slice(0,50),next:result.results.length>50};
 }
 
 export async function updateReview(id:string,status:string){
  if(!refPattern.test(id)||!REVIEW_STATES.some(x=>x===status))return false;
- const r=await db().prepare("UPDATE applications SET review_state=? WHERE id=?").bind(status,id).run();
+ const r=await db().prepare("UPDATE applications SET review_state=?,class_access=CASE WHEN ?='accepted' THEN class_access ELSE 0 END WHERE id=?").bind(status,status,id).run();
  return r.meta.changes===1;
 }
 

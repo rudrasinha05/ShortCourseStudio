@@ -1,3 +1,4 @@
+import {formatClassTime,getClassSessions,hasClassAccess} from "@/lib/class-sessions";
 import { cookies } from "next/headers";
 import { ArrowRight,CheckCircle2 } from "lucide-react";
 import { Badge,Frame } from "@/app/ui";
@@ -22,6 +23,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
  const id=typeof p.ref==="string"&&refPattern.test(p.ref)?p.ref:"";
  const row=id&&id===storedId&&token?await getApplication(id,token):null;
  const selected=row?courses.find(c=>c.slug===row.slug):null;
+ const sessions=row&&hasClassAccess(row)?await getClassSessions(row.slug,row.batch):null;
  const mode=paymentMode();
  const payable=!!mode&&selected?.status==="open"&&selected.batch===row?.batch&&row?.review_state!=="declined"&&row?.payment_state==="unpaid";
  return <Frame><section className="wrap narrow prose"><span className="eyebrow"><i/> STUDENT APPLICATIONS</span><h1>{row?"Application status":"Apply for a short course"}</h1><p>{row?"Keep your reference and tracking code to check this application again.":"Choose a course below. For upcoming batches, you can pre-apply without paying or reserving a seat."}</p>
@@ -31,6 +33,12 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
    <p>{selected?.title} · Batch {row.batch}</p>
    <dl className="receipt-details"><dt>Application reference</dt><dd className="ref">{row.id}</dd><dt>Private tracking code</dt><dd className="ref">{token}</dd><dt>Review status</dt><dd>{reviewLabels[row.review_state]??"Submitted"}</dd><dt>Payment</dt><dd>{row.payment_state==="paid"?"Payment verified":row.payment_state==="test_paid"?"Test payment verified — no real fee collected":"Not paid"}</dd></dl>
    {payable&&token?<PaymentCheckout id={row.id} token={token} mode={mode!}/>:<p className="mutedbox">{row.payment_state==="paid"?"Your fee has been received.":row.payment_state==="test_paid"?"This was a test transaction.":!mode?"Online payment is not enabled. No payment was collected.":"Payment is not available for this application right now."}</p>}
+   {sessions&&<section className="class-schedule" aria-label="My batch"><h2>My batch</h2><p>Class timings are shown in India Standard Time.</p>
+   {sessions.map(s=><div key={s.day} className="app-record"><h3>Day {s.day}</h3>
+   {s.starts_at&&s.ends_at?<p><time dateTime={s.starts_at+"+05:30"}>{formatClassTime(s.starts_at)}</time> to <time dateTime={s.ends_at+"+05:30"}>{formatClassTime(s.ends_at)}</time></p>:<p>Class time to be announced</p>}
+   <div className="actions">{s.live_url&&<a className="btn primary" href={s.live_url} target="_blank" rel="noopener noreferrer">Join live</a>}
+   {s.replay_url?<a className="btn secondary" href={s.replay_url} target="_blank" rel="noopener noreferrer">Watch replay</a>:<small>Recording not available yet</small>}</div></div>)}
+   </section>}
    <p>Keep your tracking code private. Submitting a form alone does not confirm a seat.</p>
    <div className="actions"><a className="btn secondary" href={"/apply?ref="+row.id}>Refresh status</a><a className="btn secondary" href="/apply">Apply for another course</a></div>
  </div>:<>
