@@ -16,7 +16,10 @@ try{
  const state=await(await req("/api/admin",null,admin)).json();
  assert.equal(state.courses.length,25);
  assert.match(catalog,/<h1>Short Course Studio<\/h1>/);
- assert.match(catalog,/Powered by GL Bajaj/);
+ assert.match(catalog,/class="institution-mark" aria-label="Powered by GL Bajaj"/);
+ assert.doesNotMatch(catalog,/founders-heading|class="wrap founders"/i);
+ assert.equal((catalog.match(/aria-label="Course summary"/g)||[]).length,25);
+ assert.equal((catalog.match(/<li>5 days<\/li><li>₹2,500<\/li>/g)||[]).length,25);
  assert.match(catalog,/<li>Department of Computer Science and Engineering \(Artificial Intelligence\)<\/li><li>Career Development Center<\/li>/);
  assert.match(catalog,/GL Bajaj Institute of Technology/);
  for(const track of ["Data Analytics","Database Management Systems","Computer Networks","Computer Organisation & Architecture","Theory of Computation"]){
