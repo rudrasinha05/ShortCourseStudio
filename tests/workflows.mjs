@@ -15,7 +15,28 @@ try{
  const catalog=await(await req("/")).text();
  const state=await(await req("/api/admin",null,admin)).json();
  assert.equal(state.courses.length,25);
- assert.match(catalog,/<h1>Short Course Studio<\/h1>/);
+ assert.match(catalog,/<h1>C by Horesh Sir<\/h1>/);
+ assert.match(catalog,/M.Tech from NSUT, Delhi/);
+ assert.match(catalog,/DSA Tech Trainer at GL Bajaj/);
+ assert.match(catalog,/Date and time to be announced/);
+ assert.ok(catalog.indexOf('class="upcoming-banner featured"')<catalog.indexOf('class="format"'));
+ const coursesForBanners=state.courses.slice(0,2);
+ const istAfter=(days)=>new Date(Date.now()+days*86400000+19800000).toISOString().slice(0,16);
+ const updateBanner=(slug,batch,opts={})=>req("/forms/admin/banner",{slug,batch,visible:"yes",...opts},admin);
+ assert.equal((await req("/forms/admin/banner",{slug:coursesForBanners[0].slug,batch:coursesForBanners[0].batch})).status,403);
+ assert.match((await updateBanner("c-by-horesh-sir","launch",{photo:"javascript:alert(1)"})).headers.get("Location"),/message=banner-invalid/);
+ assert.match((await updateBanner("c-by-horesh-sir","launch",{faculty:"Horesh Sir",startsAt:istAfter(3),photo:"https://images.example.invalid/faculty.jpg"})).headers.get("Location"),/message=banner-saved/);
+ for(let i=0;i<coursesForBanners.length;i++){
+  const item=coursesForBanners[i];
+  assert.match((await updateBanner(item.slug,item.batch,{startsAt:istAfter(i===0?1:-1),timing:"Test batch timing"})).headers.get("Location"),/message=banner-saved/);
+ }
+ const ranked=await(await req("/")).text();
+ assert.ok(ranked.includes("<h1>"+coursesForBanners[0].title+"</h1>"));
+ assert.match(ranked,/More upcoming courses/);
+ assert.match(ranked,/images.example.invalid\/faculty.jpg/);
+ assert.equal((ranked.match(/<article class="upcoming-banner secondary-banner">/g)||[]).length,1);
+ assert.match((await updateBanner("c-by-horesh-sir","launch",{visible:"no"})).headers.get("Location"),/message=banner-saved/);
+ assert.doesNotMatch(await(await req("/")).text(),/C by Horesh Sir/);
  assert.match(catalog,/class="institution-mark" aria-label="Powered by GL Bajaj"/);
  assert.doesNotMatch(catalog,/founders-heading|class="wrap founders"/i);
  assert.equal((catalog.match(/aria-label="Course summary"/g)||[]).length,25);
@@ -108,5 +129,5 @@ try{
  assert.match(announced,/Applications open/);assert.match(announced,/1–5 December/);
  assert.match((await req("/forms/admin/course",{...edit,status:"closed"},admin)).headers.get("Location"),/message=saved/);
  assert.match((await req("/forms/apply",{...form,email:"other@example.invalid"})).headers.get("Location"),/error=closed/);
- console.log("PASS: 25 native course links across five tracks, 5-day syllabi, form validation, stored pre-application, private receipt, duplicate prevention, recovered status, protected admin review and CSV, saved batch edits, disabled payment, day-wise schedule and replay, and revocable class access.");
+ console.log("PASS: 25 native course links across five tracks, 5-day syllabi, form validation, stored pre-application, private receipt, duplicate prevention, recovered status, protected admin review and CSV, saved batch edits, disabled payment, day-wise schedule and replay, revocable class access, and automatically ranked upcoming banners.");
 }finally{await mf.dispose();}

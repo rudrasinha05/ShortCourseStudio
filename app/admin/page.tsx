@@ -1,4 +1,5 @@
 import {headers} from "next/headers";
+import {crashCourse,getBannerFields} from "@/lib/course-banners";
 import {getClassSessions} from "@/lib/class-sessions";
 import {Frame} from "@/app/ui";
 import {chatGPTSignInPath} from "@/app/chatgpt-auth";
@@ -7,7 +8,7 @@ import {listApplications,REVIEW_STATES,reviewLabels} from "@/lib/form-workflows"
 
 export const dynamic="force-dynamic";
 export const metadata={title:"Course admin",robots:{index:false,follow:false}};
-const messages:Record<string,string>={"classes-saved":"Class schedule saved.","classes-invalid":"Check the batch, start and end times, and HTTPS links.","access-saved":"Class access updated.","access-invalid":"Accept the application before granting class access.",saved:"Course changes saved.",reviewed:"Application status updated.",invalid:"The details could not be saved. Check the form and try again.",schedule:"Enter the schedule and delivery mode before opening applications.",retry:"The request could not be completed. Please try again."};
+const messages:Record<string,string>={"banner-saved":"Homepage banner saved.","banner-invalid":"Check the batch, start time and photo URL.","classes-saved":"Class schedule saved.","classes-invalid":"Check the batch, start and end times, and HTTPS links.","access-saved":"Class access updated.","access-invalid":"Accept the application before granting class access.",saved:"Course changes saved.",reviewed:"Application status updated.",invalid:"The details could not be saved. Check the form and try again.",schedule:"Enter the schedule and delivery mode before opening applications.",retry:"The request could not be completed. Please try again."};
 const query=(values:Record<string,string>)=>new URLSearchParams(values).toString();
 export default async function Page({searchParams}:{searchParams:Promise<{course?:string;filter?:string;page?:string;message?:string}>}){
  const h=await headers();
@@ -16,10 +17,10 @@ export default async function Page({searchParams}:{searchParams:Promise<{course?
  const filter=courses.find(x=>x.slug===p.filter)?.slug??"";
  const page=typeof p.page==="string"&&/^[1-9][0-9]{0,4}$/.test(p.page)?Number(p.page):1;
  const {rows,next}=await listApplications(filter,page);
- const sessions=await getClassSessions(c.slug,c.batch);
+ const [sessions,courseBanner,crashBanner]=await Promise.all([getClassSessions(c.slug,c.batch),getBannerFields(c.slug,c.batch),getBannerFields(crashCourse.slug,crashCourse.batch)]);
  const mode=paymentMode();
  const link=(page:number)=>"/admin?"+query({course:c.slug,filter,page:String(page)})+"#applications";
- const ok=["saved","reviewed","classes-saved","access-saved"].includes(p.message??"");
+ const ok=["saved","reviewed","classes-saved","access-saved","banner-saved"].includes(p.message??"");
  return <Frame><section className="wrap catalog prose"><span className="eyebrow"><i/> COURSE MANAGEMENT</span><h1>Short Course Studio administration</h1><p>Edit course details and review student applications. Checkout is {mode==="live"?"live":mode==="test"?"in test mode":"not configured"}.</p>
  {p.message&&messages[p.message]&&<p role={ok?"status":"alert"} className={ok?"success":"error"}>{messages[p.message]}</p>}
  <div className="admin-grid"><div>
@@ -35,6 +36,8 @@ export default async function Page({searchParams}:{searchParams:Promise<{course?
  <label>Batch identifier<input name="batch" required maxLength={30} defaultValue={c.batch}/></label><p>Keep the same identifier when announcing an upcoming batch so its pre-applications stay with it.</p>
  <label>Application status<select name="status" defaultValue={c.status}><option value="soon">Batch announcement soon — pre-applications on</option><option value="open">Applications open</option><option value="closed">Applications closed</option></select></label>
  <div className="actions"><button className="btn primary">Save changes</button><a className="btn secondary" href={"/courses/"+c.slug}>View course page</a></div></form>
+ <BannerForm id="crash-banner" heading="C by Horesh Sir" slug={crashCourse.slug} batch={crashCourse.batch} data={crashBanner}/>
+ <BannerForm id="course-banner" heading={c.title} slug={c.slug} batch={c.batch} data={courseBanner}/>
  <form id="class-schedule" className="panel formpanel" action="/forms/admin/sessions" method="post">
  <h2>Class schedule &amp; recordings</h2><p>Batch {c.batch}. Enter times in India Standard Time. Use private links restricted to enrolled students on your chosen platform.</p>
  <input type="hidden" name="slug" value={c.slug}/><input type="hidden" name="batch" value={c.batch}/>
@@ -56,4 +59,19 @@ export default async function Page({searchParams}:{searchParams:Promise<{course?
  </article>)}</div>
  <div className="actions">{page>1&&<a className="btn secondary" href={link(page-1)}>Previous page</a>}{next&&<a className="btn secondary" href={link(page+1)}>Next page</a>}</div>
  </section></div></section></Frame>;
+}
+
+function BannerForm({id,heading,slug,batch,data}:{id:string;heading:string;slug:string;batch:string;data:Awaited<ReturnType<typeof getBannerFields>>}){
+ return <form id={id} className="panel formpanel" action="/forms/admin/banner" method="post">
+ <h2>Homepage banner</h2><p>{heading} · Batch {batch}</p>
+ <input type="hidden" name="slug" value={slug}/><input type="hidden" name="batch" value={batch}/>
+ <label>Faculty name<input name="faculty" maxLength={100} defaultValue={data.faculty}/></label>
+ <label>Qualification<input name="qualification" maxLength={150} defaultValue={data.qualification}/></label>
+ <label>Working profile<input name="profile" maxLength={180} defaultValue={data.profile}/></label>
+ <label>Faculty photo URL<input name="photo" type="url" maxLength={1500} defaultValue={data.photo} placeholder="https://…"/></label>
+ <label>Start date and time (IST)<input name="startsAt" type="datetime-local" defaultValue={data.starts_at}/></label>
+ <label>Timing or batch notes<input name="timing" maxLength={180} defaultValue={data.timing}/></label>
+ <label className="check"><input type="checkbox" name="visible" value="yes" defaultChecked={!!data.visible}/> Show on homepage</label>
+ <p>Leave start time blank to use the first scheduled class, when available. Past batches are automatically removed.</p>
+ <button className="btn primary">Save homepage banner</button></form>
 }

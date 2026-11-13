@@ -80,3 +80,38 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 @media(max-width:660px){.nav{flex-wrap:wrap;gap:9px;padding:10px 0}.brand strong{font-size:14px}.brand small{font-size:11px}.nav nav{gap:14px}.hero-grid,.syllabus,.programme-grid{grid-template-columns:1fr}.hero-grid{padding:31px 0}.hero h1{font-size:clamp(37px,10vw,58px)}.facts{gap:9px 14px}.facts dd{font-size:14px}.programme-grid{gap:20px}.footer>div{flex-wrap:wrap}.filter-form{grid-template-columns:minmax(0,1fr) auto}}
 @media(max-width:660px){.institution-inner{flex-wrap:wrap;gap:8px 14px}.institution-departments{padding-left:0;border-left:0;flex-basis:100%}}
 @media(max-width:390px){.track-heading h3{font-size:19px}.cardbottom{gap:5px}.filter-form{grid-template-columns:1fr}}
+
+/* Upcoming batches */
+.hero-stack{display:grid;gap:16px;padding-block:30px}
+.homepage-intro{padding:18px 0}
+.hero-stack .format{padding:18px 23px}
+.hero-stack .format dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px 20px}
+.hero-stack .format h2{margin-bottom:4px}
+.upcoming-banner{display:grid;grid-template-columns:minmax(0,1.38fr) minmax(0,.62fr);border-radius:14px;overflow:hidden;background:#142743;color:white}
+.upcoming-copy{padding:clamp(23px,4.6vw,57px);align-self:center}
+.upcoming-banner .eyebrow{color:#c8dcff}
+.upcoming-banner h1,.upcoming-banner h3{margin:10px 0 12px;color:white}
+.upcoming-banner h1{font-size:clamp(36px,5vw,67px)}
+.upcoming-banner h3{font-size:clamp(23px,2.8vw,36px)}
+.upcoming-banner .upcoming-copy p,.upcoming-banner .faculty-caption p{color:#dce7f8}
+.upcoming-banner .btn{margin-top:14px}
+.upcoming-banner .primary{background:#fff;color:#142743}
+.upcoming-banner .primary:hover{background:#dcecff}
+.upcoming-time{display:flex;align-items:flex-start;gap:10px;margin-top:16px;font-size:14px;color:#f2f7ff}
+.upcoming-time svg{flex:none;margin-top:2px}
+.upcoming-time span{display:block;color:#dce7f8}
+.upcoming-faculty{background:#243e66;display:grid;align-content:end;min-height:218px}
+.faculty-photo{width:100%;height:clamp(200px,27vw,330px);object-fit:cover;object-position:center 32%;display:block}
+.faculty-mark{display:grid;place-items:center;min-height:126px;color:#c8dcff}
+.faculty-caption{padding:14px 19px;border-top:1px solid #58739b;display:grid;gap:3px}
+.faculty-caption span{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#c8dcff;font-weight:750}
+.faculty-caption strong{font-size:20px}
+.upcoming-banner .faculty-caption p{font-size:13px}
+.upcoming-list{padding-top:30px}
+.upcoming-list h2{margin-bottom:12px}
+.upcoming-list-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.secondary-banner .upcoming-copy{padding:19px}
+.secondary-banner .faculty-photo{height:170px}
+@media(max-width:900px){.upcoming-list-grid{grid-template-columns:1fr}.hero-stack .format dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.hero-stack{padding-block:16px}.upcoming-banner{grid-template-columns:1fr}.upcoming-faculty{min-height:0}.faculty-mark{display:none}.faculty-photo{height:225px}}
+@media(max-width:380px){.hero-stack .format dl{grid-template-columns:1fr}}

@@ -16,3 +16,10 @@ export const classSessions = sqliteTable("class_sessions",{
  startsAt:text("starts_at").notNull().default(""),endsAt:text("ends_at").notNull().default(""),
  liveUrl:text("live_url").notNull().default(""),replayUrl:text("replay_url").notNull().default(""),
 },t=>[primaryKey({columns:[t.slug,t.batch,t.day]})]);
+
+export const courseBanners = sqliteTable("course_banners",{
+ slug:text().notNull(),batch:text().notNull(),faculty:text().notNull().default(""),
+ qualification:text().notNull().default(""),profile:text().notNull().default(""),
+ photo:text().notNull().default(""),startsAt:text("starts_at").notNull().default(""),
+ timing:text().notNull().default(""),visible:integer().notNull().default(1)
+},t=>[primaryKey({columns:[t.slug,t.batch]})]);

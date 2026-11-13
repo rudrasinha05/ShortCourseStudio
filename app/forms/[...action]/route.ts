@@ -1,4 +1,5 @@
 import {authorizedAdmin,getApplication} from "@/lib/enrollment";
+import {CRASH_SLUG,saveBanner} from "@/lib/course-banners";
 import {saveClassSessions,setClassAccess} from "@/lib/class-sessions";
 import {getCourse} from "@/lib/courses";
 import {accessCookie,codePattern,refPattern,createApplication,csv,csvHeader,listApplications,saveCourse,updateReview} from "@/lib/form-workflows";
@@ -40,11 +41,16 @@ export async function POST(req:Request){
    if(!refPattern.test(id)||!codePattern.test(code)||!await getApplication(id,code))return move("/apply?error=notfound#track");
    return receipt(req,id,code);
   }
-  if(!["/forms/admin/course","/forms/admin/review","/forms/admin/sessions","/forms/admin/class-access"].includes(path))return text("Not found.",404);
+  if(!["/forms/admin/course","/forms/admin/review","/forms/admin/sessions","/forms/admin/class-access","/forms/admin/banner"].includes(path))return text("Not found.",404);
   if(!await authorizedAdmin(req))return text("Administrator sign-in is required.",403);
   if(path.endsWith("/course")){
    const error=await saveCourse(slug,{title:val("title"),blurb:val("blurb"),outcome:val("outcome"),days:Array.from({length:5},(_,i)=>[val("topic"+i),val("practical"+i)]),schedule:val("schedule"),mode:val("mode"),batch:val("batch"),status:val("status")});
    return admin(error??"saved");
+  }
+  if(path.endsWith("/banner")){
+   const target=val("slug")===CRASH_SLUG?CRASH_SLUG:slug;
+   const saved=await saveBanner(target,val("batch"),val);
+   return move(redirectTo("/admin",{course:target===CRASH_SLUG?"":target,message:saved?"banner-saved":"banner-invalid"})+"#"+(target===CRASH_SLUG?"crash-banner":"course-banner"));
   }
   if(path.endsWith("/sessions"))return move(redirectTo("/admin",{course:slug,message:await saveClassSessions(slug,val("batch"),val)?"classes-saved":"classes-invalid"})+"#class-schedule");
   const isAccess=path.endsWith("/class-access");
