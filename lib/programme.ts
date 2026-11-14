@@ -4,6 +4,8 @@ export const POWERED_BY = "Powered by GL Bajaj";
 export const INSTITUTE = "GL Bajaj Institute of Technology & Management";
 export const DEPARTMENT = "Department of Computer Science and Engineering (Artificial Intelligence)";
 export const CAREER_DEPARTMENT = "Career Development Center";
+export const CAREER_DEPARTMENT_URL = "https://www.glbitm.org/training-placements/cdc-overview/57/298/317/";
+export const CAREER_DEPARTMENT_ABOUT = "GL Bajaj’s Career Development Centre helps students build career readiness throughout their degree. Its training covers aptitude, technical and emerging skills, communication and interview preparation to help students move from classroom learning to industry opportunities.";
 export const DEPARTMENT_URL = "https://www.glbitm.org/cse-artificial-intelligence/";
 export const DEPARTMENT_ABOUT = "The department combines core computer science with artificial intelligence. This proposed short-term training series pairs classroom concepts with guided labs and a final project.";
 export const pythonDetails = {
@@ -29,11 +31,11 @@ export function courseBrief(c:Course){
  return {
   audience:c.track==="Data Analytics"?"Undergraduate students interested in data analysis, statistics or AI.":"Undergraduate engineering and computing students looking for applied practice in "+c.track+".",
   prerequisite:c.level==="Beginner"?"No prior experience in this topic is required. Bring a laptop with a current browser and internet access.":c.level+". Bring a laptop with a current browser and internet access.",
-  objectives:isPython?pythonDetails.objectives:[
+  objectives:c.objectives??(isPython?pythonDetails.objectives:[
    "Explain and apply the core concepts covered in the first two sessions.",
    "Use the course tools to complete the guided exercises and verify their results.",
    "Produce and explain the final project, including an assumption, limitation or design trade-off."
-  ],
+  ]),
   resources:"Guided exercises and a project brief. Tool setup instructions will be shared with the batch announcement.",
  };
 }

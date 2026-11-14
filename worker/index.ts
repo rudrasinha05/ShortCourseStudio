@@ -23,7 +23,13 @@ const worker = {
         },
       };
     }
-    return runWithConnectorBinding(binding, () => handler.fetch(request, env, ctx));
+    return runWithConnectorBinding(binding, async () => {
+      const response = await handler.fetch(request, env, ctx);
+      if (!/^\/(?:apply|application-status|student|faculty|admin|staff)(?:\/|$)/.test(new URL(request.url).pathname)) return response;
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "private, no-store");
+      return new Response(response.body, {status:response.status,statusText:response.statusText,headers});
+    });
   },
 };
 

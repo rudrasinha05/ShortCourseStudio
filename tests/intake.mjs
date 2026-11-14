@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import {readFile,readdir} from "node:fs/promises";
+import {Miniflare} from "miniflare";
+const root="dist/server";
+const modules=["index.js",...(await readdir(root,{recursive:true})).filter(p=>/\.m?js$/.test(p)&&p!=="index.js")].map(p=>({type:"ESModule",path:root+"/"+p}));
+const mf=new Miniflare({modulesRoot:root,modules,compatibilityDate:"2026-05-15",compatibilityFlags:["nodejs_compat"],d1Databases:["DB"],bindings:{SITE_ADMIN_EMAIL:"admin@example.invalid",SCS_INITIAL_C_BATCH_OPEN:"1"}});
+const admin={"oai-authenticated-user-id":"admin","oai-authenticated-user-email":"admin@example.invalid"};
+const slug="c-by-horesh-sir",form={slug,batch:"batch-1",name:"Intake Test",email:"test@example.invalid",college:"Example College",consent:"yes"};
+const edit={slug,batch:"batch-1",schedule:"26 November 2026 at 8:00 PM IST",mode:"Online",status:"open"};
+const req=(path,data,identity={})=>mf.dispatchFetch("https://site.test"+path,{method:data?"POST":"GET",headers:{...identity,...(data?{"Content-Type":"application/x-www-form-urlencoded",Origin:"https://site.test"}:{})},body:data?new URLSearchParams(data).toString():undefined,redirect:"manual"});
+const html=async(path,identity)=>await(await req(path,null,identity)).text();
+const apply="/apply?course="+slug;
+try{
+ const db=await mf.getD1Database("DB");
+ for(const file of (await readdir("drizzle")).filter(x=>x.endsWith(".sql")).sort()){
+  for(const s of (await readFile("drizzle/"+file,"utf8")).split("--> statement-breakpoint"))if(s.trim())await db.prepare(s.trim()).run();
+ }
+ await Promise.all([html(apply),html("/courses/"+slug)]).then(([a,c])=>{
+  assert.match(a,/Submit application/);
+  assert.match(a,/No payment is collected at submission/);
+  assert.match(c,/Applications open/);
+ });
+ const initial=await db.prepare("SELECT slug,batch,status,schedule,mode FROM course_settings").all();
+ assert.equal(initial.results.length,1);
+ assert.equal(initial.results[0].slug,slug);
+ assert.equal(initial.results[0].status,"open");
+ assert.match(initial.results[0].schedule,/26 November 2026 at 8:00 PM IST/);
+ assert.equal(initial.results[0].mode,"Online");
+ assert.doesNotMatch(await html("/apply?course=python-for-data-analytics"),/Submit application/);
+ assert.doesNotMatch(await html("/admin?section=courses"),/Save admissions settings/);
+ assert.match(await html("/admin?section=courses",admin),/Save admissions settings/);
+ assert.equal((await req("/forms/admin/intake",edit)).status,403);
+ assert.equal((await req("/forms/admin/site-controls",{paused:"yes"})).status,403);
+ assert.match((await req("/forms/admin/intake",{...edit,mode:""},admin)).headers.get("Location"),/intakeMessage=schedule/);
+ assert.match((await req("/forms/admin/intake",{...edit,batch:"stale"},admin)).headers.get("Location"),/intake-stale/);
+ const accepted=await req("/forms/apply",form);
+ assert.match(accepted.headers.get("Location"),/ref=SCS-/);
+ const billing=accepted.headers.get("Location"),cookie=accepted.headers.get("Set-Cookie").split(";")[0];
+ assert.match(await html(billing,{Cookie:cookie}),/Billing details/);
+ const bill=await req("/apply/billing/save",{ref:new URL(billing,"https://site.test").searchParams.get("ref"),name:"Test Student",addressLine:"123 Test Street",city:"Greater Noida",state:"Uttar Pradesh",pin:"201310"},{Cookie:cookie});
+ const offline=await html(bill.headers.get("Location"),{Cookie:cookie});
+ assert.match(offline,/Online payments are not yet enabled/);
+ assert.match(offline,/Payment options/);
+ assert.doesNotMatch(offline,/Run test checkout|Pay ₹/);
+ const ref=billing.replace("/apply/billing?","/apply?");
+ assert.match(await html(ref,{Cookie:cookie}),/Application received/);
+ assert.match((await req("/forms/admin/site-controls",{slug,paused:"yes",announcement:"Practice notice"},admin)).headers.get("Location"),/site-saved/);
+ assert.match(await html("/"),/Practice notice/);
+ assert.match(await html(apply),/New applications are temporarily paused/);
+ assert.doesNotMatch(await html(apply),/Submit application/);
+ assert.match((await req("/forms/apply",{...form,email:"second@example.invalid"})).headers.get("Location"),/error=paused/);
+ const json=await mf.dispatchFetch("https://site.test/api/applications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...form,consent:true,email:"third@example.invalid"})});
+ assert.equal(json.status,409);
+ assert.match(await html(ref,{Cookie:cookie}),/Application received/);
+ assert.match((await req("/forms/admin/site-controls",{slug,paused:"no",announcement:""},admin)).headers.get("Location"),/site-saved/);
+ assert.match(await html(apply),/Submit application/);
+ assert.match((await req("/forms/admin/intake",{...edit,status:"closed"},admin)).headers.get("Location"),/intake-saved/);
+ assert.doesNotMatch(await html(apply),/Submit application/);
+ assert.match(await html("/courses/"+slug),/Applications closed/);
+ assert.match((await req("/forms/apply",{...form,email:"second@example.invalid"})).headers.get("Location"),/error=closed/);
+ assert.match(await html(ref,{Cookie:cookie}),/Application received/);
+ assert.match((await req("/forms/admin/intake",edit,admin)).headers.get("Location"),/intake-saved/);
+ assert.match(await html(apply),/Submit application/);
+ assert.equal(await db.prepare("SELECT COUNT(*) AS n FROM applications").first("n"),1);
+ console.log("PASS: one-course launch, admin authorization, batch close and reopen, global pause, announcements, and receipt continuity.");
+}finally{await mf.dispose();}
