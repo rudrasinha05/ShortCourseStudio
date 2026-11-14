@@ -1,3 +1,6 @@
+import {LaunchReadiness} from "./launch-readiness";
+import {BatchScheduleFields} from "./batch-schedule-fields";
+import {StudentDirectory,type DirectoryParams} from "./student-directory";
 import {reminderPreview} from "@/lib/class-reminders";
 import {ArrowRight,BookOpen,CalendarDays,ChartNoAxesColumn,Globe,GraduationCap,LayoutDashboard,Plus,Users} from "lucide-react";
 import {adminSections,adminTarget,adminUrl,adminViews,resolveSection,type AdminSection} from "@/lib/admin-navigation";
@@ -18,11 +21,11 @@ import {listApplications,REVIEW_STATES,reviewLabels,type AppFilters} from "@/lib
 
 export const dynamic="force-dynamic";
 export const metadata={title:"Admin Portal",robots:{index:false,follow:false}};
-const messages:Record<string,string>={"banner-saved":"Homepage banner saved.","banner-invalid":"Check the batch, start time and photo URL.","classes-saved":"Class schedule saved.","classes-invalid":"Check the batch, start and end times, and HTTPS links.","access-saved":"Class access updated.","access-invalid":"Accept the application before granting class access.",saved:"Course changes saved.",reviewed:"Application status updated.",invalid:"The details could not be saved. Check the form and try again.",schedule:"Enter the schedule and delivery mode before opening applications.",instructor:"Save one instructor in the course banner section for this batch before opening applications.","parent-course":"Open applications on C by Horesh Sir, not on an individual day plan.",retry:"The request could not be completed. Please try again."};
+const messages:Record<string,string>={"banner-saved":"Homepage banner saved.","banner-invalid":"Check the batch, start time and photo URL.","classes-saved":"Class schedule saved.","classes-invalid":"Check the batch, start and end times, and HTTPS links.","access-saved":"Class access updated.","access-invalid":"Accept the application before granting class access.",saved:"Course changes saved.",reviewed:"Application status updated.",invalid:"The details could not be saved. Check the form and try again.",schedule:"Enter the schedule and delivery mode before opening applications.","schedule-invalid":"Choose a valid date, time and delivery mode.","course-batch-stale":"The active batch changed. Reload this course before saving.",instructor:"Save one instructor in the course banner section for this batch before opening applications.","parent-course":"Open applications on C by Horesh Sir, not on an individual day plan.",retry:"The request could not be completed. Please try again."};
 const query=(values:Record<string,string>)=>new URLSearchParams(values).toString();
 
 type Course=Awaited<ReturnType<typeof getCourses>>[number];
-type Params=AppFilters&{section?:string;view?:string;course?:string;filter?:string;page?:string;message?:string;portalMessage?:string;intakeMessage?:string;controlMessage?:string};
+type Params=AppFilters&DirectoryParams&{section?:string;view?:string;course?:string;filter?:string;page?:string;message?:string;portalMessage?:string;intakeMessage?:string;controlMessage?:string};
 const icons={overview:LayoutDashboard,students:Users,courses:BookOpen,classes:CalendarDays,faculty:GraduationCap,website:Globe,reports:ChartNoAxesColumn};
 const quickLinks=[
  {label:"Review applications",description:"Check new submissions and update application status.",anchor:"applications",icon:Users},
@@ -37,43 +40,56 @@ export default async function Page({searchParams}:{searchParams:Promise<Params>}
  const [p,courses]=await Promise.all([searchParams,getCourses()]);
  const section=resolveSection(p.section,!!(p.filter||p.q||p.page||p.batch||p.payment||p.review));
  const views=section==="overview"?[]:adminViews[section];
- const view=views.find(([id])=>id===p.view)?.[0]??views[0]?.[0]??"";
- const selected=courses.find(x=>x.slug===p.course)??courses.find(x=>x.slug===CRASH_SLUG)??courses[0];
+ const applicationFilters=!!(p.filter||p.q||p.page||p.batch||p.payment||p.review);
+ const view=views.find(([id])=>id===p.view)?.[0]??(section==="students"&&applicationFilters?"applications":views[0]?.[0]??"");
+ const explicitCourse=courses.find(x=>x.slug===p.course);
+ const selected=explicitCourse??courses.find(x=>x.slug===CRASH_SLUG)??courses[0];
  const c=cDayNumber(selected.slug)&&view!=="syllabus"?courses.find(x=>x.slug===CRASH_SLUG)??selected:selected;
  const group=adminSections.find(x=>x.id===section)!;
- const needsCourse=section==="courses"||section==="classes"||view==="assignments"||view==="banners";
+ const picker=({
+  batch:{label:"Course for batch rules",button:"Load batch rules"},
+  syllabus:{label:"Course or day plan to edit",button:"Load syllabus"},
+  catalogue:{label:"Course for catalogue visibility",button:"Load course visibility"},
+  schedule:{label:"Course for class timetable",button:"Load timetable"},
+  resources:{label:"Course for learning materials",button:"Load resources"},
+  assignments:{label:"Course for faculty assignment",button:"Load assignments"},
+  banners:{label:"Course for homepage banner",button:"Load banner"},
+ } as Record<string,{label:string;button:string}>)[view];
+ const intakeCourse=explicitCourse&&explicitCourse.visibility==="published"&&!cDayNumber(explicitCourse.slug)?explicitCourse:undefined;
  const notice=p.message?messages[p.message]:p.portalMessage?facultyMessages[p.portalMessage]:p.intakeMessage?intakeMessages[p.intakeMessage]:p.controlMessage==="saved"?"Changes saved.":p.controlMessage==="invalid"?"Nothing was saved. Check the fields and try again.":undefined;
  const ok=["saved","reviewed","classes-saved","access-saved","banner-saved","faculty-added","faculty-updated","assignment-saved","proposal-reviewed","intake-saved","site-saved"].includes(p.message??p.portalMessage??p.intakeMessage??p.controlMessage??"");
  return <Frame><div className="wrap portal admin-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Admin Portal</h1><p>Manage courses, students and the website from one place.</p></div><PortalAccount email={user.email} path="/admin"/></header>
   <div className="admin-layout">
-   <nav className="admin-sidebar" aria-label="Admin sections"><p className="admin-nav-label">Workspace</p>{adminSections.map(item=>{const Icon=icons[item.id];return <a key={item.id} aria-current={item.id===section?"page":undefined} href={adminUrl(item.id,{course:p.course?c.slug:""})}><Icon size={17} aria-hidden="true"/><span>{item.label}</span></a>;})}</nav>
+   <nav className="admin-sidebar" aria-label="Admin sections"><p className="admin-nav-label">Workspace</p>{adminSections.map(item=>{const Icon=icons[item.id];return <a key={item.id} aria-current={item.id===section?"page":undefined} href={adminUrl(item.id)}><Icon size={17} aria-hidden="true"/><span>{item.label}</span></a>;})}</nav>
    <div className="admin-workspace" id="admin-workspace">
     <div className="admin-section-head"><p className="admin-kicker">Workspace / {group.label}</p><h2>{group.label}</h2><p>{group.description}</p></div>
-    {views.length>0&&<nav aria-label={group.label+" tools"} className="admin-tabs">{views.map(([id,label])=><a key={id} aria-current={id===view?"page":undefined} href={adminUrl(section,{view:id,course:p.course?c.slug:""})}>{label}</a>)}</nav>}
+    {views.length>0&&<nav aria-label={group.label+" tools"} className="admin-tabs">{views.map(([id,label])=><a key={id} aria-current={id===view?"page":undefined} href={adminUrl(section,{view:id})}>{label}</a>)}</nav>}
     <PortalNotice message={notice} ok={ok}/>
-    {needsCourse&&<CoursePicker courses={courses} selected={c} section={section} view={view}/>}
+    {picker&&<CoursePicker courses={courses} selected={c} section={section} view={view} {...picker}/>}
     {section==="overview"?<Overview courses={courses} selected={c}/>:
+     view==="roster"?<StudentDirectory courses={courses} params={p}/>:
      view==="applications"?<Applications courses={courses} selected={c} p={p}/>:
      view==="support"?<SupportPanel/>:
-     view==="admissions"?<IntakePanel courses={courses} selected={c}/>:
+     view==="admissions"?<IntakePanel courses={courses} selected={intakeCourse}/>:
      view==="syllabus"?<CourseEditor c={c}/>:
      view==="schedule"?<ClassSchedule c={c}/>:
      section==="faculty"?<AdminPortalPanel courses={courses} selected={c} view={view as "directory"|"proposals"|"assignments"}/>:
      view==="banners"?<CourseBanners c={c}/>:
      view==="controls"?<SiteControlsPanel selected={c}/>:
      view==="access"?<StaffPanel/>:
+     view==="launch"?<LaunchReadiness courses={courses}/>:
      <ControlCenter courses={courses} selected={c} view={view}/>}
    </div>
   </div>
  </div></Frame>;
 }
-function CoursePicker({courses,selected,section,view}:{courses:Course[];selected:Course;section:AdminSection;view:string}){
+function CoursePicker({courses,selected,section,view,label,button}:{courses:Course[];selected:Course;section:AdminSection;view:string;label:string;button:string}){
  const options=courses.filter(x=>view==="syllabus"||!cDayNumber(x.slug));
  return <form className="panel formpanel admin-course-picker" method="get" action="/admin">
   <input type="hidden" name="section" value={section}/><input type="hidden" name="view" value={view}/>
-  <label>Working on<select name="course" defaultValue={selected.slug}>{options.map(x=><option key={x.slug} value={x.slug}>{cDayNumber(x.slug)?"C · Day "+cDayNumber(x.slug)+" · ":""}{x.title}</option>)}</select></label>
-  <button className="btn secondary">Load course</button><span className="admin-field-hint">{selected.batch}</span>
+  <label>{label}<select name="course" defaultValue={selected.slug}>{options.map(x=><option key={x.slug} value={x.slug}>{cDayNumber(x.slug)?"C · Day "+cDayNumber(x.slug)+" · ":""}{x.title}</option>)}</select></label>
+  <button className="btn secondary">{button}</button><span className="admin-field-hint">Batch {selected.batch}</span>
  </form>;
 }
 async function Overview({courses,selected}:{courses:Course[];selected:Course}){
@@ -89,22 +105,22 @@ async function Overview({courses,selected}:{courses:Course[];selected:Course}){
   <section className="portal-section"><h2>Quick actions</h2><div className="admin-quick-grid">{quickLinks.map(({label,description,anchor,icon:Icon})=><a className="panel admin-quick-card" key={anchor} href={anchor==="add-faculty"?adminUrl("faculty",{view:"directory"},"add-faculty"):adminTarget(anchor,{course:selected.slug})}><span className="admin-icon"><Icon size={19} aria-hidden="true"/></span><span><strong>{label}</strong><small>{description}</small></span><ArrowRight className="admin-quick-arrow" size={16} aria-hidden="true"/></a>)}</div></section>
   <section className="panel admin-status" aria-label="Website status">
    <div><strong>New applications</strong><span>{controls.intake_paused?"Paused site-wide":"Allowed for open batches"}</span></div>
-   <div><strong>Online checkout</strong><span>{mode==="live"?"Live":mode==="test"?"Test only":"Not configured"}</span></div>
+   <div><strong>Online checkout</strong><a className="textlink" href={adminTarget("launch-readiness")}>{mode==="live"?"Live":mode==="test"?"Test only":"Not configured"} · Launch checklist</a></div>
    <div><strong>Open support requests</strong><a className="textlink" href={adminTarget("support-requests")}>{summary?.support??0} · View requests</a></div>
   </section>
  </div>;
 }
 function CourseEditor({c}:{c:Course}){
  return <section className="portal-section" id="course-management"><h2>Course details &amp; syllabus</h2><p>Edit what students see on the course page.</p>
- <form className="panel formpanel" action="/forms/admin/course" method="post">
+ <form key={c.slug+"/"+c.batch} className="panel formpanel" action="/forms/admin/course" method="post">
  <h2>Edit course</h2><p>{cDayNumber(c.slug)?"Exclusive day plan · Applications are managed on the full course.":c.exclusive?"Exclusive Short-Term Course · One instructor · 15 hours total":"Regular Short-Term Course · One module · 15 hours"}</p><input type="hidden" name="slug" value={c.slug}/>
  <label>Title<input name="title" required minLength={3} maxLength={100} defaultValue={c.title}/></label>
  <label>Introduction<textarea name="blurb" required minLength={4} maxLength={450} defaultValue={c.blurb}/></label>
  <label>Project outcome<textarea name="outcome" required minLength={4} maxLength={300} defaultValue={c.outcome}/></label>
  {c.days.map(([topic,practical],i)=><fieldset key={i}><legend>{cDayNumber(c.slug)?"Topic":"Day"} {i+1}</legend><label>Lecture topic<input name={"topic"+i} required minLength={2} maxLength={140} defaultValue={topic}/></label><label>Practical<textarea name={"practical"+i} required minLength={2} maxLength={320} defaultValue={practical}/></label></fieldset>)}
- <details className="admin-detail"><summary>Batch and application settings</summary><div className="formpanel"><p>These settings are also available under Open or close applications.</p><label>Schedule<input name="schedule" placeholder="Dates and timings" maxLength={150} defaultValue={c.schedule}/></label>
- <label>Delivery mode or venue<input name="mode" placeholder="Online or campus location" maxLength={100} defaultValue={c.mode}/></label>
- <label>Batch identifier<input name="batch" required maxLength={30} defaultValue={c.batch}/></label><p>Use a new identifier for a new cohort. Keep the existing identifier to preserve applications already linked to this batch.</p>
+ <details className="admin-detail"><summary>Batch and application settings</summary><div className="formpanel"><p>These settings are also available under Open or close applications.</p>
+ <BatchScheduleFields schedule={c.schedule} mode={c.mode}/>
+ <input type="hidden" name="batch" value={c.batch}/><p>Editing batch <strong>{c.batch}</strong>. Use Fees, deadlines &amp; batches to start a different cohort.</p>
  <label>Application status<select name="status" defaultValue={cDayNumber(c.slug)?"soon":c.status}><option value="soon">Batch announcement soon — applications locked</option>{!cDayNumber(c.slug)&&<option value="open">Announce batch and open applications</option>}<option value="closed">Applications closed</option></select></label></div></details>
  <div className="actions"><button className="btn primary">Save changes</button><a className="btn secondary" href={"/courses/"+c.slug}>View course page</a></div></form>
  </section>;
@@ -148,7 +164,7 @@ async function Applications({courses,selected:c,p}:{courses:Course[];selected:Co
  <p>Review applications, verify fees and manage class access.</p><form className="filter-form admin-filters" action="/admin#applications" method="get"><input type="hidden" name="section" value="students"/><input type="hidden" name="view" value="applications"/><input type="hidden" name="course" value={c.slug}/><label>Filter by course<select name="filter" defaultValue={filter}><option value="">All courses</option>{courses.map(x=><option key={x.slug} value={x.slug}>{cDayNumber(x.slug)?"C · Day "+cDayNumber(x.slug)+" · ":""}{x.title}</option>)}</select></label><label>Search applicants<input name="q" maxLength={120} defaultValue={filters.q} placeholder="Name, email, college or reference"/></label><label>Batch ID<input name="batch" maxLength={30} defaultValue={filters.batch}/></label><label>Review status<select name="review" defaultValue={filters.review}><option value="">All</option><option value="pending">Awaiting review</option>{REVIEW_STATES.map(s=><option key={s} value={s}>{reviewLabels[s]}</option>)}</select></label><label>Payment status<select name="payment" defaultValue={filters.payment}><option value="">All</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option><option value="test_paid">Test paid</option></select></label><button className="btn secondary">Apply filters</button><a className="textlink" href={adminTarget("applications")}>Clear filters</a></form>
  <p>{rows.length?rows.length+" records on page "+page:"No applications match these filters."}</p>
  {rows.length>0&&<a className="btn secondary" href={"/forms/admin/export?"+query({filter,page:String(page),...filters})}>Download page as CSV</a>}
- <div className="application-list">{rows.map(r=><article key={r.id} className="app-record"><strong>{r.name}</strong><p>{r.email} · {r.college}</p><p>{courses.find(x=>x.slug===r.slug)?.title??r.slug} · {r.batch}</p><small>{r.id}</small>{!cDayNumber(r.slug)&&<p>Payment: {r.payment_state.replace("_"," ")}</p>}
+ <div className="application-list">{rows.map(r=><article key={r.id} className="app-record"><a className="textlink" href={adminUrl("students",{view:"roster",student:r.id})}>{r.name}</a><p>{r.email} · {r.college}</p><p>{courses.find(x=>x.slug===r.slug)?.title??r.slug} · {r.batch}</p><small>{r.id}</small>{!cDayNumber(r.slug)&&<p>Payment: {r.payment_state.replace("_"," ")}</p>}
  <form className="filter-form" action="/forms/admin/review" method="post"><input type="hidden" name="id" value={r.id}/><input type="hidden" name="slug" value={c.slug}/><ApplicationReturn values={returnFields}/><label>Review status<select name="review" defaultValue={r.review_state}>{REVIEW_STATES.map(s=><option key={s} value={s}>{reviewLabels[s]}</option>)}</select></label><button className="btn secondary">Update status</button></form>
  {r.review_state==="accepted"&&(r.slug!==CRASH_SLUG||r.payment_state==="paid")&&<form className="formpanel" action="/forms/admin/class-access" method="post"><input type="hidden" name="id" value={r.id}/><input type="hidden" name="slug" value={c.slug}/><ApplicationReturn values={returnFields}/><input type="hidden" name="grant" value={r.class_access?"no":"yes"}/><p>Class access: {r.class_access?"Granted":"Not granted"}</p><button className="btn secondary">{r.class_access?"Revoke class access":"Grant class access"}</button></form>}
  <ApplicantTools returnFields={returnFields} id={r.id} slug={c.slug} notes={notes.filter(n=>n.application_id===r.id)} record={learning.find(l=>l.application_id===r.id)} amount={r.amount} offline={r.payment_state==="unpaid"&&!r.order_id&&r.review_state!=="declined"} answers={r.form_answers} eligible={r.review_state==="accepted"&&r.class_access===1&&(r.slug!==CRASH_SLUG||r.payment_state==="paid")}/>

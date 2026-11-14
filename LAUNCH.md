@@ -34,3 +34,11 @@
 ### Billing and payment
 
 New web applications go to Billing address, then Course payment. Existing applicants can resume from their application status. The billing form is currently for Indian addresses. The checkout offers UPI, debit or credit cards, net banking and wallets, subject to the options enabled by the merchant and the buyer’s device. The fee is taken from the application record. Do not put billing records or merchant credentials in Git. The public source repository is separate from private site hosting and runtime data.
+
+## Production payment handoff
+
+1. Keep the site restricted for the provider test. In the Site's server settings, configure the Razorpay Test key ID, Test key secret and webhook signing secret, together with `PAYMENTS_MODE=test`. Never commit them. Test success, failure and delayed capture with a test applicant.
+2. Confirm webhook reachability from Razorpay itself. An owner-only Site blocks anonymous callbacks at the hosting layer even if the app's webhook handler accepts valid signatures. Before student launch, choose a student-accessible audience and verify the signed webhook from the dashboard, or use a separately deployed signed relay. The in-app **Check payment status** action recovers a capture from Razorpay without relying on inbound webhooks, but it runs only when the applicant asks for a status check.
+3. Verify the organiser support contact and approved cancellation/refund terms. Confirm the C course schedule, class links and how payment or enrollment works for the other courses. C confirms enrollment after verified live capture. Other courses retain administrator review and class-access controls.
+4. Use a separate staging deployment and data for provider test transactions. Test and live orders are not interchangeable. Unpaid orders from before the mode-tracking migration need merchant reconciliation before retrying. Real refunds are handled through Razorpay Dashboard and must be reconciled with class access. Do not switch production to live credentials until the provider rehearsal and these checks pass.
+5. In **Admin → Reports & access → Launch readiness**, review configuration, then sign in as a non-owner and confirm the student journey before sharing the site.

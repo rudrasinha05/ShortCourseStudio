@@ -44,9 +44,14 @@ try{
  assert.doesNotMatch(panel,/name="customFields"|name="classReminder"|name="bio"|name="returnQ"/);
  for(const [path,field] of [
   ["courses&view=batch","customFields"],["courses&view=catalogue","visibility"],["website&view=content","headline"],
-  ["website&view=messages","classReminder"],["students","q"],["faculty","bio"],["classes","live1"],["reports&view=access","role"],
+  ["website&view=messages","classReminder"],["students&view=applications","q"],["faculty","bio"],["classes","live1"],["reports&view=access","role"],
  ])assert.match(await html("/admin?section="+path,admin),new RegExp('name="'+field+'"'));
  assert.match(await html("/admin?section=reports&view=audit",admin),/Recent admin changes/);
+ const launch=await html("/admin?section=reports&view=launch",admin);
+ assert.match(launch,/Launch readiness/);
+ assert.match(launch,/Razorpay checkout/);
+ assert.match(launch,/Not configured/);
+ assert.doesNotMatch(await html("/admin?section=reports&view=launch",student),/aria-label="Launch checklist"/);
  assert.doesNotMatch(await html("/admin?section=faculty",admin),/name="live1"|name="customFields"|name="siteAnnouncement"/);
  assert.match(await op("content",{catalogue:"Training Catalogue QA",slides:slug,recommendations:slug,tagline:"Verified tagline",faq:"Contact course support"}),/controlMessage=saved/);
  assert.match(await html("/"),/Training Catalogue QA/);

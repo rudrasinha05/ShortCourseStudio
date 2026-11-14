@@ -1,5 +1,6 @@
+import {readBatchStart} from "./batch-schedule";
 import {cfg,db,getCourses,lookup} from "./enrollment";
-import {CRASH_SLUG,CRASH_TITLE,isCShortCourse,C_LAUNCH_START,TRACK_DETAILS} from "./courses";
+import {CRASH_SLUG,CRASH_TITLE,isCShortCourse,C_LAUNCH_START,C_LAUNCH_SCHEDULE,TRACK_DETAILS} from "./courses";
 export {CRASH_SLUG} from "./courses";
 
 const CRASH_BATCH="launch";
@@ -57,7 +58,8 @@ export async function getUpcomingBanners(courses:Courses,now=Date.now(),includeC
   const f=bannerFields(course.slug,saved);
   if(!f.visible)return [];
   const original=courses.find(c=>c.slug===course.slug)!;
-  const start=starts.results.find(s=>s.slug===course.slug&&s.batch===original.batch)?.starts_at||f.starts_at||"";
+  const batchStart=original.schedule===C_LAUNCH_SCHEDULE?"":readBatchStart(original.schedule);
+  const start=starts.results.find(s=>s.slug===course.slug&&s.batch===original.batch)?.starts_at||batchStart||f.starts_at||"";
   if(start&&(!dateIsValid(start)||instant(start)<=now))return [];
   const spotlight=!start&&!course.crash&&!saved;
   if(spotlight&&!includeCatalogue)return [];

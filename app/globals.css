@@ -420,3 +420,49 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 .checkout-safety{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
 .checkout-safety svg{flex:none}
 @media(max-width:540px){.checkout-methods{grid-template-columns:1fr}.checkout-steps li{font-size:11px;padding:6px;gap:4px}.checkout-step-number{width:21px;height:21px}}
+
+.student-directory{display:grid;gap:13px;min-width:0}
+.student-directory-filters{grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:10px;align-items:end;margin:0;padding:15px}
+.student-directory-filters .actions{grid-column:1/-1}
+.student-directory-count{margin:0}
+.student-table-wrap{padding:0;overflow:auto;min-width:0}
+.student-table-wrap:focus-visible,.student-profile-link:focus-visible{outline:2px solid #275f9c;outline-offset:3px}
+.student-table{min-width:670px}
+.student-table th,.student-table td{padding:11px 10px}
+.student-table thead th{background:#edf4fb;color:#173e69}
+.student-table tbody th{background:transparent;font-weight:750;min-width:110px}
+.student-table tbody tr:nth-child(even){background:#f8fafd}
+.student-table tbody tr:hover,.student-table tbody tr:focus-within{background:#eff6fd}
+.student-table tbody tr:last-child>*{border-bottom:0}
+.student-table small{display:block;margin-top:3px;color:var(--admin-muted);font-size:12px;font-weight:500}
+.student-table .student-cell-count{font-variant-numeric:tabular-nums}
+.student-profile-link{display:inline-flex;align-items:center;gap:5px;width:fit-content}
+.student-profile-link svg{flex:none}
+.student-profile-card,.student-profile-history{display:grid;gap:8px}
+.student-profile-card{padding:16px}
+.student-profile-facts,.student-profile-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.student-profile-facts div,.student-profile-metrics div{padding:9px;border:1px solid var(--admin-line);border-radius:8px;background:#f7faff;min-width:0}
+.student-profile-facts dt,.student-profile-metrics dt{font-size:12px;color:var(--admin-muted);font-weight:750}
+.student-profile-facts dd,.student-profile-metrics dd{margin:3px 0 0;overflow-wrap:anywhere}
+.student-profile-metrics dd{font-size:22px;font-weight:800}
+.student-enrollment{display:inline-block;border-radius:6px;background:#eef1f5;padding:3px 6px;font-size:12px;font-weight:700}
+.student-enrollment[data-enrolled]{background:#e1f2e9;color:#195940}
+@media(max-width:600px){.student-directory-filters{grid-template-columns:1fr}.student-profile-facts,.student-profile-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.admin-open-batches{margin-top:14px}
+.admin-open-batches .admin-panel-line{margin-bottom:8px}
+.admin-open-batches td,.admin-open-batches th{padding:10px}
+.admin-open-batches tbody th{background:none}
+.admin-open-batches small{display:block;color:var(--admin-muted);font-weight:500}
+.admin-open-batches table{min-width:510px}
+.admin-batch-schedule{display:grid;gap:10px}
+.admin-batch-schedule .portal-fields{align-items:start}
+.admin-date-field{display:grid;gap:6px}
+.admin-date-field .btn{justify-self:start}
+.formpanel .admin-venue-hidden{display:none}
+.admin-intake-picker{grid-template-columns:minmax(0,1fr) auto}
+#batch-editor{scroll-margin-top:18px}
+@media(max-width:520px){.admin-intake-picker{grid-template-columns:1fr}}
+
+.payment-status-check{display:grid;gap:8px;justify-items:start;margin-top:10px}
+.payment-status-check .mutedbox{margin:0}

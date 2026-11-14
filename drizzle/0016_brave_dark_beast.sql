@@ -1,0 +1,1 @@
+ALTER TABLE `applications` ADD `payment_order_mode` text;

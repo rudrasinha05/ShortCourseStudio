@@ -9,6 +9,7 @@ export const applications = sqliteTable("applications",{
  studentUserId:text("student_user_id"),
  classAccess:integer("class_access").notNull().default(0),
  reviewState:text("review_state").notNull().default("submitted"),
+ paymentOrderMode:text("payment_order_mode"),
  paymentState:text("payment_state").notNull().default("unpaid"),
  formAnswers:text("form_answers").notNull().default("{}"),
 },t=>[uniqueIndex("applications_course_batch_email").on(t.slug,t.batch,t.email),index("applications_student_user").on(t.studentUserId)]);

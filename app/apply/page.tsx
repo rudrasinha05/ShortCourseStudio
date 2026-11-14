@@ -1,3 +1,4 @@
+import {PaymentStatusCheck} from "./payment-status-check";
 import {checkoutStatus,checkoutUrl,getBillingAddress} from "@/lib/billing";
 import {formFields,getBatchRules,getNoticeTemplates,priceText} from "@/lib/admin-controls";
 import {formatClassTime,getClassSessions,hasClassAccess} from "@/lib/class-sessions";
@@ -58,6 +59,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
    <dl className="receipt-details"><dt>Application reference</dt><dd className="ref">{row.id}</dd>{tokenRow&&receiptToken&&<><dt>Private tracking code</dt><dd className="ref">{receiptToken}</dd></>}<dt>Review status</dt><dd>{reviewLabels[row.review_state]??"Submitted"}</dd>{!legacyDay&&<><dt>Payment</dt><dd>{row.payment_state==="paid"?"Payment verified":row.payment_state==="test_paid"?"Test payment verified — no real fee collected":"Not paid"}</dd></>}</dl>
    {legacyDay&&<p className="mutedbox">This reference is for an older day-only application. <a className="textlink" href={"/apply?course="+CRASH_SLUG}>Open the full five-day course application</a>.</p>}
    {!legacyDay&&<p className="mutedbox">{row.payment_state==="paid"?(enrolled?"Your fee is verified and your seat is confirmed for all five days.":"Your fee has been received."):row.payment_state==="test_paid"?"This was a test transaction.":!mode?"Online payment is not enabled. No payment was collected.":checkout?.available?"Continue to payment when you’re ready.":checkout?.message}</p>}
+   {!legacyDay&&mode&&row.order_id&&row.payment_state==="unpaid"&&<PaymentStatusCheck id={row.id} token={tokenRow?receiptToken:undefined} receipt={checkoutUrl("receipt",row.id)} onReceipt/>}
    {sessions&&<section className="class-schedule" aria-label="My batch"><h2>My batch</h2><p>Class timings are shown in India Standard Time.</p>
    {sessions.map(s=><div key={s.day} className="app-record"><h3>Day {s.day}</h3>
    {s.starts_at&&s.ends_at?<p><time dateTime={s.starts_at+"+05:30"}>{formatClassTime(s.starts_at)}</time> to <time dateTime={s.ends_at+"+05:30"}>{formatClassTime(s.ends_at)}</time></p>:<p>Class time to be announced</p>}

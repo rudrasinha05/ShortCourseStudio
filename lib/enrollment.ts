@@ -23,7 +23,7 @@ export const enrollmentUnavailable=(status:string|undefined)=>status==="paused"?
  ?"This batch is no longer accepting applications."
  :"Applications open once the batch is announced.";
 type Overrides = {slug:string;title:string|null;blurb:string|null;outcome:string|null;days:string|null;schedule:string;mode:string;batch:string;status:string};
-export type Application={id:string;token_hash:string;slug:string;batch:string;name:string;email:string;college:string;created_at:string;amount:number;order_id:string|null;payment_id:string|null;payment_state:string;review_state:string;class_access:number};
+export type Application={id:string;token_hash:string;slug:string;batch:string;name:string;email:string;college:string;created_at:string;amount:number;order_id:string|null;payment_order_mode:string|null;payment_id:string|null;payment_state:string;review_state:string;class_access:number};
 export function db(){if(!cfg.DB)throw new Error("Missing data binding");return cfg.DB}
 export function paymentMode():"test"|"live"|null{const m=cfg.PAYMENTS_MODE;return (m==="test"||m==="live")&&cfg.RAZORPAY_KEY_ID?.startsWith("rzp_"+m+"_")&&cfg.RAZORPAY_KEY_SECRET&&cfg.RAZORPAY_WEBHOOK_SECRET?m:null}
 export async function getSiteControls(){
@@ -97,18 +97,18 @@ export async function getOwnedApplication(id:string,userId:string){
  return db().prepare("SELECT * FROM applications WHERE id=? AND student_user_id=?").bind(id,userId).first<Application>();
 }
 export const createRef=()=>"SCS-"+crypto.randomUUID().replace(/-/g,"").slice(0,20).toUpperCase();
-export async function gateway(path:string,body?:Record<string,unknown>){
- const resp=await fetch("https://api.razorpay.com/v1/"+path,{method:body?"POST":"GET",headers:{Authorization:"Basic "+btoa(cfg.RAZORPAY_KEY_ID+":"+cfg.RAZORPAY_KEY_SECRET),"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(8000)});
+export async function gateway<T={id:string;order_id?:string;amount:number;currency:string;status:string}>(path:string,body?:Record<string,unknown>){
+ const resp=await fetch("https://api.razorpay.com/v1/"+path,{method:body?"POST":"GET",redirect:"manual",headers:{Authorization:"Basic "+btoa(cfg.RAZORPAY_KEY_ID+":"+cfg.RAZORPAY_KEY_SECRET),"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(8000)});
  if(!resp.ok)throw new Error("Gateway temporarily unavailable");
- return await resp.json() as {id:string;order_id?:string;amount:number;currency:string;status:string};
+ return await resp.json() as T;
 }
 export async function markPaid(row:Application,paymentId:string){
  const mode=paymentMode();
- if(!mode||!row.order_id||!Number.isSafeInteger(row.amount)||row.amount<=0)return false;
+ if(!mode||!row.order_id||row.payment_order_mode!==mode||!Number.isSafeInteger(row.amount)||row.amount<=0)return false;
  const next=mode==="test"?"test_paid":"paid";
  // Grant access only on the first verified live capture. Repeated callbacks
  // must not undo a later administrator revocation.
  const enroll=row.slug===CRASH_SLUG&&mode==="live"?1:0;
- const result=await db().prepare("UPDATE applications SET review_state=CASE WHEN ?=1 AND payment_state='unpaid' THEN 'accepted' ELSE review_state END, class_access=CASE WHEN ?=1 AND payment_state='unpaid' THEN 1 ELSE class_access END, payment_id=?, payment_state=? WHERE id=? AND order_id=? AND amount=? AND ((payment_state='unpaid' AND payment_id IS NULL) OR (payment_state=? AND payment_id=?))").bind(enroll,enroll,paymentId,next,row.id,row.order_id,row.amount,next,paymentId).run();
+ const result=await db().prepare("UPDATE applications SET review_state=CASE WHEN ?=1 AND payment_state='unpaid' AND review_state<>'declined' THEN 'accepted' ELSE review_state END, class_access=CASE WHEN ?=1 AND payment_state='unpaid' AND review_state<>'declined' THEN 1 ELSE class_access END, payment_id=?, payment_state=? WHERE id=? AND order_id=? AND amount=? AND payment_order_mode=? AND ((payment_state='unpaid' AND payment_id IS NULL) OR (payment_state=? AND payment_id=?))").bind(enroll,enroll,paymentId,next,row.id,row.order_id,row.amount,mode,next,paymentId).run();
  return result.meta.changes===1;
 }

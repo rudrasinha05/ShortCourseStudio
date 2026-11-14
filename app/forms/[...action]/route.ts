@@ -1,3 +1,4 @@
+import {readAdminSchedule} from "@/lib/batch-schedule";
 import {checkoutUrl} from "@/lib/billing";
 import {saveReminderContact} from "@/lib/class-reminders";
 import {preferencesFromForm} from "@/lib/learning-preferences";
@@ -138,7 +139,11 @@ export async function POST(req:Request){
   }
   if(path==="/forms/admin/intake"||path==="/forms/admin/site-controls"){
    if(!await authorizedAdmin(req))return text("Administrator sign-in is required.",403);
-   const intakeMessage=path.endsWith("/intake")?await setBatchIntake(slug,{batch:val("batch"),schedule:val("schedule"),mode:val("mode"),status:val("status")}):(await setSiteControls(val("paused"),val("announcement"))?"site-saved":"site-invalid");
+   const isIntake=path.endsWith("/intake");
+   const structured=isIntake&&val("structuredSchedule")==="1";
+   const existing=structured?await lookup(slug):null;
+   const schedule=isIntake?readAdminSchedule(val,existing??{schedule:"",mode:""},structured):null;
+   const intakeMessage=isIntake?(schedule?await setBatchIntake(slug,{batch:val("batch"),...schedule,status:val("status")}):"schedule-invalid"):(await setSiteControls(val("paused"),val("announcement"))?"site-saved":"site-invalid");
    if(["intake-saved","site-saved"].includes(intakeMessage))await audit(actorFor(req),path.split("/").at(-1)??"intake",path.endsWith("/intake")?slug+"/"+val("batch"):"site");
    return move(adminTarget(path.endsWith("/intake")?"enrollment-controls":"site-controls",{course:slug,intakeMessage}));
   }
@@ -154,7 +159,12 @@ export async function POST(req:Request){
   if(!["/forms/admin/course","/forms/admin/review","/forms/admin/sessions","/forms/admin/class-access","/forms/admin/banner"].includes(path))return text("Not found.",404);
   if(!await isAllowed(req,path.endsWith("/review")?["admissions"]:[]))return text("Administrator sign-in is required.",403);
   if(path.endsWith("/course")){
-   const error=await saveCourse(slug,{title:val("title"),blurb:val("blurb"),outcome:val("outcome"),days:Array.from({length:5},(_,i)=>[val("topic"+i),val("practical"+i)]),schedule:val("schedule"),mode:val("mode"),batch:val("batch"),status:val("status")});
+   const structured=val("structuredSchedule")==="1";
+   const existing=structured?await lookup(slug):null;
+   if(structured&&existing?.batch!==val("batch"))return admin("course-batch-stale");
+   const schedule=readAdminSchedule(val,existing??{schedule:"",mode:""},structured);
+   if(!schedule)return admin("schedule-invalid");
+   const error=await saveCourse(slug,{title:val("title"),blurb:val("blurb"),outcome:val("outcome"),days:Array.from({length:5},(_,i)=>[val("topic"+i),val("practical"+i)]),...schedule,batch:val("batch"),status:val("status")},structured?val("batch"):undefined);
    if(!error)await audit(actorFor(req),"edit course",slug);
    return admin(error??"saved");
   }

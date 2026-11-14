@@ -29,12 +29,13 @@ export async function createApplication(input:unknown,owner?:{id:string;email:st
  return {id,token,status:201};
 }
 
-export async function saveCourse(slug:string,input:unknown){
+export async function saveCourse(slug:string,input:unknown,expectedBatch?:string){
  const p=editSchema.safeParse(input);
  if(!p.success)return "invalid";
  const course=await lookup(slug);
  if(!course)return "invalid";
  const a=p.data;
+ if(expectedBatch&&course.batch!==expectedBatch)return "course-batch-stale";
  if(a.status==="open"&&course.visibility!=="published")return "invalid";
  if(a.status==="open"&&registrationSlug(slug)!==slug)return "parent-course";
  if(a.status==="open"&&!applicationsOpen(a))return "schedule";
@@ -42,8 +43,8 @@ export async function saveCourse(slug:string,input:unknown){
   const faculty=await db().prepare("SELECT faculty FROM course_banners WHERE slug=? AND batch=?").bind(slug,a.batch).first<string>("faculty");
   if(!faculty?.trim())return "instructor";
  }
- await db().prepare("INSERT INTO course_settings (slug,title,blurb,outcome,days,schedule,mode,batch,status) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(slug) DO UPDATE SET title=excluded.title,blurb=excluded.blurb,outcome=excluded.outcome,days=excluded.days,schedule=excluded.schedule,mode=excluded.mode,batch=excluded.batch,status=excluded.status").bind(slug,a.title,a.blurb,a.outcome,JSON.stringify(a.days),a.schedule,a.mode,a.batch,a.status).run();
- return null;
+ const result=await db().prepare("INSERT INTO course_settings (slug,title,blurb,outcome,days,schedule,mode,batch,status) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(slug) DO UPDATE SET title=excluded.title,blurb=excluded.blurb,outcome=excluded.outcome,days=excluded.days,schedule=excluded.schedule,mode=excluded.mode,batch=excluded.batch,status=excluded.status WHERE ?='' OR course_settings.batch=?").bind(slug,a.title,a.blurb,a.outcome,JSON.stringify(a.days),a.schedule,a.mode,a.batch,a.status,expectedBatch??"",expectedBatch??"").run();
+ return result.meta.changes?null:"course-batch-stale";
 }
 
 export type AppFilters={q?:string;review?:string;payment?:string;batch?:string};

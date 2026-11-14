@@ -1,5 +1,6 @@
+import {readBatchStart} from "./batch-schedule";
 import {cfg,db,digest,getCourses,secureEqual} from "./enrollment";
-import {CRASH_SLUG,C_LAUNCH_START} from "./courses";
+import {CRASH_SLUG,C_LAUNCH_START,C_LAUNCH_SCHEDULE} from "./courses";
 import {formatClassTime} from "./class-sessions";
 
 type Recipient={id:string;role:"student"|"faculty";email:string;phone:string};
@@ -37,14 +38,16 @@ export async function authorizedReminderJob(req:Request){
 async function upcomingSessions(now:number,limit=400){
  const courses=await getCourses(),bound=(ms:number)=>new Date(ms+19800000).toISOString().slice(0,16);
  const from=bound(now),to=bound(now+24*3600000);
- const records=(await db().prepare(`SELECT slug,batch,day,starts_at FROM class_sessions WHERE starts_at>=? AND starts_at<=?
+ const records=(await db().prepare(`SELECT slug,batch,day,starts_at,0 AS launch_fallback FROM class_sessions WHERE starts_at>=? AND starts_at<=?
  UNION ALL
- SELECT slug,batch,1,COALESCE((SELECT NULLIF(starts_at,'') FROM course_banners b WHERE b.slug=c.slug AND b.batch='launch'),?) AS starts_at
+ SELECT slug,batch,1,COALESCE((SELECT NULLIF(starts_at,'') FROM course_banners b WHERE b.slug=c.slug AND b.batch='launch'),?) AS starts_at,1 AS launch_fallback
  FROM course_settings c WHERE c.slug=? AND c.batch='batch-1' AND NOT EXISTS
  (SELECT 1 FROM class_sessions s WHERE s.slug=c.slug AND s.batch=c.batch AND s.day=1 AND s.starts_at<>'')
- ORDER BY starts_at,slug,batch,day LIMIT 400`).bind(from,to,C_LAUNCH_START,CRASH_SLUG).all<{slug:string;batch:string;day:number;starts_at:string}>()).results;
- return records.flatMap(({slug,batch,day,starts_at:start})=>{
-  const course=courses.find(c=>c.slug===slug),ms=Date.parse(start+"+05:30");
+ ORDER BY starts_at,slug,batch,day LIMIT 400`).bind(from,to,C_LAUNCH_START,CRASH_SLUG).all<{slug:string;batch:string;day:number;starts_at:string;launch_fallback:number}>()).results;
+ return records.flatMap(({slug,batch,day,starts_at,launch_fallback})=>{
+  const course=courses.find(c=>c.slug===slug);
+  const start=(launch_fallback&&course&&course.schedule!==C_LAUNCH_SCHEDULE?readBatchStart(course.schedule):"")||starts_at;
+  const ms=Date.parse(start+"+05:30");
   if(!course||!Number.isFinite(ms)||ms<=now||ms>now+24*3600000)return [];
   return [{slug,batch,day,start,title:course.title,mode:course.batch===batch?course.mode:""}];
  }).slice(0,limit);

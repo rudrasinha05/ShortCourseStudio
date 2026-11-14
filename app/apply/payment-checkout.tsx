@@ -1,4 +1,5 @@
 "use client";
+import {PaymentStatusCheck} from "./payment-status-check";
 import {useState} from "react";
 import {ArrowRight,CreditCard,Landmark,Smartphone,Wallet} from "lucide-react";
 
@@ -48,5 +49,6 @@ export default function PaymentCheckout({id,token,mode,fee,receipt}:{id:string;t
   <p>Razorpay shows the methods available for your account and device. You can change your choice in checkout.</p>
   <button type="button" className="btn primary" onClick={start} disabled={busy}>{busy?"Opening checkout…":mode==="test"?"Run test checkout":"Pay "+fee} <ArrowRight size={16} aria-hidden="true"/></button>
   {error&&<p role="alert" className="error">{error}</p>}
+  <PaymentStatusCheck id={id} token={token} receipt={receipt}/>
  </div>;
 }

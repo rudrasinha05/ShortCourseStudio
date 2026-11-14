@@ -39,6 +39,8 @@ for(const mode of ["test","live"]){
   assert.equal((await request(paymentPath,hasCookie)).headers.get("Location"),billingPath);
   assert.equal((await request(paymentPath)).headers.get("Location"),"/application-status?ref="+id);
   assert.equal((await post("/api/payments/order",ref)).status,409);
+  assert.equal((await post("/api/payments/reconcile",{id,token:"0".repeat(64)})).status,404);
+  assert.equal((await (await post("/api/payments/reconcile",ref)).json()).paymentState,"unpaid");
   assert.equal((await bill(form,{})).headers.get("Location"),"/application-status?ref="+id);
   assert.equal((await bill({...form,pin:"0123"})).headers.get("Location"),billingPath+"&error=invalid");
   assert.equal((await bill(form)).headers.get("Location"),paymentPath);
@@ -65,13 +67,27 @@ for(const mode of ["test","live"]){
   provider.intercept({path:"/v1/payments/"+payment,method:"GET"}).reply(200,{...details,status:"authorized"},{headers:json});
   assert.equal((await post("/api/payments/verify",check)).status,202);
   assert.equal((await application()).class_access,0);
+  const paymentsList="/v1/orders/"+order+"/payments";
+  const orderMode=()=>db.prepare("SELECT payment_order_mode FROM applications WHERE id=?").bind(id).first("payment_order_mode");
+  assert.equal(await orderMode(),mode);
+  await db.prepare("UPDATE applications SET payment_order_mode=? WHERE id=?").bind(mode==="live"?"test":"live",id).run();
+  assert.equal((await post("/api/payments/reconcile",ref)).status,409);
+  assert.equal((await post("/api/payments/order",ref)).status,409);
+  await db.prepare("UPDATE applications SET payment_order_mode=? WHERE id=?").bind(mode,id).run();
+  provider.intercept({path:paymentsList,method:"GET"}).reply(200,{items:[{...details,amount:1,status:"captured"},{...details,status:"authorized"}]},{headers:json});
+  assert.equal((await (await post("/api/payments/reconcile",ref)).json()).paymentState,"pending");
+  assert.equal((await application()).class_access,0);
   const webhook=JSON.stringify({event:"payment.captured",payload:{payment:{entity:{...details,status:"captured"}}}});
   const pushCapture=(sig=hmac(webhook,webhookSecret))=>request("/api/payments/webhook",{method:"POST",headers:{...json,"x-razorpay-signature":sig},body:webhook});
   assert.equal((await pushCapture("0".repeat(64))).status,401);
   if(mode==="test"){
    provider.intercept({path:"/v1/payments/"+payment,method:"GET"}).reply(200,{...details,status:"captured"},{headers:json});
    assert.equal((await post("/api/payments/verify",check)).status,200);
-  }else assert.equal((await pushCapture()).status,200);
+  }else{
+   provider.intercept({path:paymentsList,method:"GET"}).reply(200,{items:[{...details,status:"captured"}]},{headers:json});
+   assert.equal((await (await post("/api/payments/reconcile",ref)).json()).paymentState,"paid");
+   assert.equal((await pushCapture()).status,200);
+  }
   assert.equal((await request(paymentPath,hasCookie)).headers.get("Location"),"/apply?ref="+id);
   assert.equal((await bill({...form,addressLine:"Should not overwrite"})).headers.get("Location"),"/apply?ref="+id);
   assert.equal((await db.prepare("SELECT address_line FROM application_billing WHERE application_id=?").bind(id).first()).address_line,"456 Edited Test Street");
@@ -93,4 +109,4 @@ for(const mode of ["test","live"]){
   }
  }finally{await mf.dispose();await fetchMock.close();}
 }
-console.log("PASS: mocked Razorpay order, fixed amount, wrong signature/amount, pending capture, test isolation, verified enrollment, replay access and duplicate capture after revocation.");
+console.log("PASS: mocked Razorpay order, fixed amount, wrong signature/amount, pending capture, test isolation, verified enrollment, replay access and duplicate capture after revocation, status recovery and test/live isolation.");

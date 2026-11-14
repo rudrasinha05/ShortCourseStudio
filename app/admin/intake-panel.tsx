@@ -1,33 +1,47 @@
+import {BatchScheduleFields} from "./batch-schedule-fields";
 import {adminTarget} from "@/lib/admin-navigation";
 import {Badge} from "@/app/ui";
 
-import {canApply,getCourses,getSiteControls,paymentMode} from "@/lib/enrollment";
-import {CRASH_SLUG,cDayNumber} from "@/lib/courses";
+import {canApply,getCourses,getSiteControls,intakeStatus,paymentMode} from "@/lib/enrollment";
+import {cDayNumber} from "@/lib/courses";
 
 type Course=Awaited<ReturnType<typeof getCourses>>[number];
 export const intakeMessages:Record<string,string>={
  "intake-saved":"Batch admissions settings saved.",
  "intake-stale":"The selected batch changed. Reload the batch and try again.",
  "intake-invalid":"Could not save batch admissions settings.",
+ "schedule-invalid":"Choose a valid date, time and delivery mode.",
  "site-saved":"Website-wide settings saved.",
  "site-invalid":"Check the pause setting and announcement length.",
  schedule:"Enter a schedule and delivery mode before opening the batch.",
  instructor:"Add an instructor in Website → Course banners before opening applications."
 };
-export function IntakePanel({courses,selected}:{courses:Course[];selected:Course}){
- const c=cDayNumber(selected.slug)?courses.find(x=>x.slug===CRASH_SLUG)!:selected;
+export function IntakePanel({courses,selected}:{courses:Course[];selected?:Course}){
+ const eligible=courses.filter(c=>!cDayNumber(c.slug)&&c.visibility==="published");
+ const open=eligible.filter(canApply),managed=eligible.filter(c=>!canApply(c)),c=selected;
+ const load=(slug:string)=>adminTarget("batch-editor",{course:slug});
  return <section id="enrollment-controls" className="portal-section">
-  <h2>Open or close applications</h2><p>Choose when students can apply for this batch. This does not change the syllabus or remove existing applications.</p>
-  <form className="panel formpanel" method="post" action="/forms/admin/intake">
-   <div className="admin-panel-line"><h3>{c.title}</h3><Badge status={c.status}/></div>
+  <h2>Open or close applications</h2><p>Load a course to set its batch start, delivery mode and application status. Existing applications stay on their original batch.</p>
+  <div className="panel admin-open-batches">
+   <div className="admin-panel-line"><h3>Courses open for applications</h3><span>{open.length} open</span></div>
+   {open.length?<div className="student-table-wrap" role="region" aria-label="Open courses" tabIndex={0}><table aria-label="Courses open for applications"><thead><tr><th scope="col">Course &amp; batch</th><th scope="col">Batch starts</th><th scope="col">Delivery</th><th scope="col">Action</th></tr></thead><tbody>
+    {open.map(course=><tr key={course.slug}><th scope="row">{course.title}<small>{course.batch}</small></th><td>{course.schedule}</td><td>{course.mode}</td><td><a className="textlink" href={load(course.slug)} aria-label={"Load "+course.title}>Load</a></td></tr>)}
+   </tbody></table></div>:<p className="mutedbox">No courses are accepting applications right now. Load a published course below to open a batch.</p>}
+  </div>
+  <form className="panel formpanel admin-course-picker admin-intake-picker" method="get" action="/admin#batch-editor">
+   <input type="hidden" name="section" value="courses"/><input type="hidden" name="view" value="admissions"/>
+   <label>Choose a course<select name="course" required defaultValue={c?.slug??""}><option value="" disabled>Select a published course</option>
+    {!!open.length&&<optgroup label="Applications open">{open.map(course=><option value={course.slug} key={course.slug}>{course.title} · {course.batch}</option>)}</optgroup>}
+    {!!managed.length&&<optgroup label="Other published courses">{managed.map(course=><option value={course.slug} key={course.slug}>{course.title} · {course.batch}</option>)}</optgroup>}
+   </select></label><button className="btn secondary">Load course</button>
+  </form>
+  {c&&<form id="batch-editor" key={c.slug+"/"+c.batch} className="panel formpanel" method="post" action="/forms/admin/intake">
+   <div className="admin-panel-line"><div><h3>{c.title}</h3><p>Batch {c.batch}</p></div><Badge status={intakeStatus(c)}/></div>
    <input type="hidden" name="slug" value={c.slug}/><input type="hidden" name="batch" value={c.batch}/>
-   <div className="portal-fields">
-    <label>Batch schedule<input name="schedule" maxLength={150} defaultValue={c.schedule} placeholder="Start date and time (IST)"/></label>
-    <label>Delivery mode or venue<input name="mode" maxLength={100} defaultValue={c.mode} placeholder="Online or campus venue"/></label>
-   </div>
+   <BatchScheduleFields schedule={c.schedule} mode={c.mode}/>
    <label>Application status<select name="status" defaultValue={c.status}><option value="soon">Not announced · no applications</option><option value="open">Announce and open applications</option><option value="closed">Close applications</option></select></label>
    <div className="actions"><button className="btn primary">Save admissions settings</button><a className="btn secondary" href={adminTarget("applications",{course:c.slug,filter:c.slug})}>Review applicants</a><a className="textlink" href={canApply(c)?"/apply?course="+c.slug:"/courses/"+c.slug}>{canApply(c)?"View application form":"View course page"}</a></div>
-  </form>
+  </form>}
  </section>;
 }
 export async function SiteControlsPanel({selected}:{selected:Course}){
