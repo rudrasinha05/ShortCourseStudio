@@ -1,10 +1,20 @@
+import {facultyTemplates} from "./faculty-templates";
+
 export type Day = [topic: string, practical: string];
-export const TRACKS = ["Data Analytics","Database Management Systems","Computer Networks","Computer Organisation & Architecture","Theory of Computation"] as const;
+export const TRACKS = ["C Programming","Data Analytics","Database Management Systems","Computer Networks","Computer Organisation & Architecture","Theory of Computation"] as const;
 export type Track = typeof TRACKS[number];
-export type Course = { slug: string; track: Track; title: string; blurb: string; outcome: string; level: string; tools: string; days: Day[] };
+export const TRACK_DETAILS: Record<Track,{id:string;tag:string;label:string;description:string}> = {
+ "Data Analytics":{id:"data-analytics",tag:"DA",label:"Data Analytics",description:"Analyse data with Python, probability, statistics, machine learning and deep learning."},
+ "Database Management Systems":{id:"dbms",tag:"DB",label:"DBMS",description:"Design relational databases, write reports, tune queries and build data pipelines."},
+ "Computer Networks":{id:"networks",tag:"CN",label:"Computer Networks",description:"Plan networks, configure switching and routing, and troubleshoot in a simulator."},
+ "Computer Organisation & Architecture":{id:"coa",tag:"CA",label:"COA",description:"Explore the datapath, assembly language, arithmetic, memory and processor performance."},
+ "Theory of Computation":{id:"toc",tag:"TC",label:"TOC",description:"Build automata, design grammars and examine what machines can compute."},
+ "C Programming":{id:"c-programming",tag:"C",label:"C Programming",description:"Build tested C programs, from control flow and strings to memory management, file handling and data structures."}
+};
+export type Course = { slug: string; track: Track; title: string; blurb: string; outcome: string; level: string; tools: string; days: Day[]; objectives?:string[]; instructor?:string; exclusive?:true };
 export const FEE = 2500;
 export const PAISE = FEE * 100;
-const [a,d,n,c,t]=TRACKS;
+const [,a,d,n,c,t]=TRACKS;
 const core: Course[] = [
 {slug:"python-for-data-analytics",track:a,title:"Python for Data Analytics",blurb:"Turn a raw sales dataset into a project you can show. Build charts, explain what you found and get live feedback.",outcome:"A Colab analysis notebook with charts and three explained findings.",level:"Beginner",tools:"Google Colab, Python, pandas, Matplotlib",days:[
 ["Start with Python","Open Colab and explore a sample sales dataset."],
@@ -160,6 +170,71 @@ advanced(t,"toc-computability","Turing Machines & Computability","Distinguish wh
 ["Reductions and undecidability","Walk through the logic of a reduction and explain the halting problem."],
 ["Computability mini-project","Demonstrate a tested decider and explain a contrasting undecidable problem."]])
 ];
-export const COURSES = [...core, ...additional];
+const cTools="GCC or Clang (C17), a code editor and a terminal";
+const cProgramming:Course[]=[
+ {...advanced("C Programming","c-programming-foundations","C Programming Foundations","Go from your first compile to a menu-driven program with clean functions and input checks.","A command-line grade calculator with a test table for invalid inputs and boundary scores.","Beginner",cTools,[
+ ["Types, expressions and compilation","Compile a temperature converter with warnings enabled and check integer versus floating-point division."],
+ ["Input validation and decisions","Read a line with fgets, convert it with strtol and handle invalid values before grading boundary scores."],
+ ["Loops and menu design","Build a retryable menu and test its quit, repeat and unknown-command paths."],
+ ["Functions and scope","Split validation, grading and display into small functions and test each one."],
+ ["Mini-project: grade calculator","Deliver a menu-driven calculator, a build command and tests for empty, malformed and boundary inputs."]
+ ]),objectives:["Compile and diagnose a C17 program with compiler warnings enabled.","Validate numeric input before branching or looping.","Split a menu-driven program into reusable functions."]},
+ {...advanced("C Programming","c-arrays-and-strings","Arrays & Strings in C","Work with collections and text while keeping array bounds and string termination explicit.","A text analyser that reports line, word and character counts, with a test set for empty and long inputs.","Basic C loops and functions",cTools,[
+ ["Arrays, indexing and bounds","Compute min, max and mean for sample readings, including zero and one-element cases."],
+ ["Matrices and nested loops","Implement a matrix transpose and verify it on a non-square matrix."],
+ ["Strings, buffers and terminators","Read a bounded line, remove its newline when present and detect when the input exceeds the buffer."],
+ ["Text scanning and counting","Count whitespace-delimited words and compare results for tabs, repeated spaces and blank lines."],
+ ["Mini-project: text analyser","Build a terminal text analyser and verify it with expected outputs for short, empty and long inputs."]
+ ]),objectives:["Traverse arrays without reading or writing outside their bounds.","Explain and test null termination and input truncation.","Build and verify a text scanner with clear counting rules."]},
+ {...advanced("C Programming","c-pointers-and-memory","Pointers & Dynamic Memory in C","Understand what pointers refer to, who owns allocated memory and how to debug lifetime mistakes.","A reusable resizable integer buffer with a test harness and a documented memory-check run.","C arrays and functions",cTools+", AddressSanitizer where supported",[
+ ["Addresses, pointers and output parameters","Write a function that returns min and max through pointers and trace which values it modifies."],
+ ["Arrays, pointer arithmetic and const","Walk a bounded array with pointers and compare results with an indexed implementation."],
+ ["Allocation and ownership","Allocate an integer buffer, check for failure and document which function must release it."],
+ ["Resizing and cleanup","Use a temporary pointer for realloc, guard capacity calculations and test growth across boundaries."],
+ ["Mini-project: dynamic integer buffer","Build append, read and destroy operations and run empty, growth and cleanup cases under a memory checker."]
+ ]),objectives:["Distinguish an address, the pointed-to value and the lifetime of the underlying object.","Handle allocation and resizing errors without losing ownership of the old buffer.","Use a memory checker to verify bounds and cleanup."]},
+ {...advanced("C Programming","c-structures-and-files","Structures & File Handling in C","Model records with structs and build a command-line app that can save and reload its data.","An inventory tracker that round-trips its records and reports malformed entries with line numbers.","C arrays, strings and functions",cTools,[
+ ["Structs, enums and record validation","Model an inventory item with an ID, name, category and count, then validate sample records."],
+ ["Modular C and header files","Separate record operations from the user interface and compile both source files together."],
+ ["Reading and parsing text files","Load a documented tab-separated format and report missing columns and invalid counts."],
+ ["Writing files and checking I/O","Save validated records and handle failed opens and writes before reporting success."],
+ ["Mini-project: inventory tracker","Implement add, list, search and save operations, then verify a save-reload round trip and malformed input."]
+ ]),objectives:["Model and validate related fields with structs and enums.","Read and write a documented record format with explicit error checks.","Separate persistence, validation and the command-line interface."]},
+ {...advanced("C Programming","c-data-structures-and-algorithms","Data Structures & Algorithms in C","Implement core data structures and use tests and operation counts to compare your choices.","A command-line task queue with automated tests and a short comparison of array and linked-list operations.","C pointers, structs and dynamic allocation",cTools,[
+ ["Searching, sorting and operation counts","Implement insertion sort and binary search, then compare binary and linear searches on sorted data."],
+ ["Singly linked lists","Implement insert and remove operations and test the head, tail and empty-list cases."],
+ ["Stacks and delimiter checking","Use a stack to validate nested delimiters and report where the first mismatch occurs."],
+ ["Queues and circular buffers","Build a bounded ring queue and test FIFO order, wraparound, overflow and underflow."],
+ ["Mini-project: command-line task queue","Build enqueue, dequeue and list commands, submit regression tests and explain your storage choice."]
+ ]),objectives:["Choose between sequential and binary search based on the ordering requirement.","Implement linked lists, stacks and queues and test their boundary cases.","Explain an array-versus-linked-list design trade-off using operation counts."]}
+];
+export const CRASH_SLUG="c-by-horesh-sir";
+export const CRASH_TITLE="C by Horesh Sir";
+export const C_DAY_SLUGS=cProgramming.map(c=>c.slug);
+export const cDayNumber=(slug:string)=>C_DAY_SLUGS.indexOf(slug)+1;
+export const registrationSlug=(slug:string)=>cDayNumber(slug)?CRASH_SLUG:slug;
+export const isCShortCourse=(slug:string)=>registrationSlug(slug)===CRASH_SLUG;
+const crash:Course={
+ slug:CRASH_SLUG,track:"C Programming",title:CRASH_TITLE,instructor:"Horesh Sir",exclusive:true,
+ blurb:"One five-day C programming short-term course, from your first compile to implementing core data structures.",
+ outcome:"Five practical exercises and projects covering control flow, text processing, memory, files and data structures.",
+ level:"Beginner to intermediate",tools:cTools,
+ days:cProgramming.map(c=>[c.title,c.outcome]),
+};
+export const REGULAR_TRACKS = TRACKS.filter(track=>track!=="C Programming");
+const regularCourses=[...core,...additional];
+export const regularModules=(track:Track)=>regularCourses.filter(course=>course.track===track);
+const facultyCourses:Course[]=facultyTemplates.map((item)=>{
+ const modules=regularModules(item.track);
+ return {
+  slug:item.slug,track:item.track,title:item.track+(item.instructor?" by "+item.instructor:""),exclusive:true,
+  instructor:item.instructor??undefined,
+  blurb:"One instructor covers the five regular modules in a single 15-hour course.",
+  outcome:"Complete an integrated practical exercise drawing on all five modules.",
+  level:"Intensive",tools:[...new Set(modules.map(course=>course.tools))].join("; "),
+  days:modules.map(course=>[course.title,course.outcome]),
+ };
+});
+export const COURSES = [...regularCourses, ...cProgramming, crash, ...facultyCourses];
 export const getCourse = (slug: string) => COURSES.find(c => c.slug === slug);
 export const feeText = "₹2,500";

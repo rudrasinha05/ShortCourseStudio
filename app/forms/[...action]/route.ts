@@ -33,7 +33,7 @@ export async function POST(req:Request){
  const admin=(message:string)=>move(redirectTo("/admin",{course:slug,message}));
  try{
   if(path==="/forms/apply"){
-   const r=await createApplication({slug,name:val("name"),email:val("email"),college:val("college"),consent:val("consent")==="yes"});
+   const r=await createApplication({slug,batch:val("batch")||undefined,name:val("name"),email:val("email"),college:val("college"),consent:val("consent")==="yes"});
    return r.id&&r.token?receipt(req,r.id,r.token):apply(r.error??"retry");
   }
   if(path==="/forms/status"){

@@ -15,6 +15,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .top{background:#fff}
 .nav{min-height:82px;gap:18px}
 .brand{gap:12px;line-height:1.22;letter-spacing:0}
+.brand-logo{display:block;width:40px;height:40px;flex:none}
 .brand strong,.brand small{display:block}
 .brand strong{font-size:16px}.brand small{margin-top:4px;font-size:12px;color:var(--muted);font-weight:600}
 .logo{height:42px;width:42px;border-radius:3px;background:var(--deep);color:#fff;border-bottom:3px solid #e6b44c;font-size:12px;font-weight:850;letter-spacing:.05em}
@@ -25,9 +26,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .hero p{color:var(--muted);font-size:17px}
 .institution-strip{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .institution-inner{display:flex;align-items:center;gap:20px;padding-block:12px}
-.institution-mark{display:grid;flex:none;line-height:1.2;border-left:3px solid #c99536;padding-left:11px;color:#592106;font-family:"Open Sans",system-ui,sans-serif}
-.institution-mark span{font-size:11px;font-weight:650}
-.institution-mark strong{font-size:21px;font-weight:800;letter-spacing:.045em;text-transform:uppercase}
+.institution-mark{display:flex;align-items:center;gap:9px;flex:none;line-height:1.2;border-left:3px solid #c99536;padding-left:11px;color:#592106;font-family:"Open Sans",system-ui,sans-serif}
+.institution-logo{display:block;width:49px;height:auto;flex:none}
+.institution-mark span{display:block;font-size:11px;font-weight:650}
+.institution-mark strong{display:block;font-size:21px;font-weight:800;letter-spacing:.045em;text-transform:uppercase}
 .institution-departments{margin:0;padding:0 0 0 20px;border-left:1px solid var(--line);list-style:none;font-size:13px;font-weight:650;color:var(--ink)}
 .institution-departments li+li{margin-top:2px}
 .programme-department{margin-top:16px;padding-top:10px;border-top:1px solid var(--line)}
@@ -115,3 +117,60 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 @media(max-width:900px){.upcoming-list-grid{grid-template-columns:1fr}.hero-stack .format dl{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.hero-stack{padding-block:16px}.upcoming-banner{grid-template-columns:1fr}.upcoming-faculty{min-height:0}.faculty-mark{display:none}.faculty-photo{height:225px}}
 @media(max-width:380px){.hero-stack .format dl{grid-template-columns:1fr}}
+/* C course poster */
+.crash-banner{--poster-ink:#07152d;--poster-aqua:#66f6e4;--poster-gold:#ffe095;position:relative;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);isolation:isolate;background:var(--poster-ink);border:1px solid #2e5379;border-radius:16px;box-shadow:0 15px 32px #0b244332}
+.crash-banner::before{position:absolute;z-index:2;inset:0 0 auto;content:"";height:3px;background:linear-gradient(90deg,var(--poster-aqua),#4d8dff 62%,var(--poster-gold));pointer-events:none}
+.crash-banner .upcoming-copy{position:relative;isolation:isolate;overflow:hidden;align-self:stretch;display:grid;align-items:center;padding:clamp(22px,4vw,48px);background:radial-gradient(ellipse at 4% 10%,#073f54 0%,transparent 58%),radial-gradient(ellipse at 100% 100%,#15366a 0%,transparent 66%),linear-gradient(130deg,#0b203e,#08172f 70%)}
+.crash-banner .upcoming-copy::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(#83cdfb17 1px,transparent 1px),linear-gradient(90deg,#83cdfb17 1px,transparent 1px);background-size:27px 27px;mask-image:linear-gradient(145deg,#000,transparent 72%);pointer-events:none}
+.crash-banner .upcoming-content{position:relative;min-width:0}
+.c-code-motif{position:absolute;right:-12px;top:25%;z-index:-1;transform:rotate(-11deg);margin:0;pointer-events:none;color:#86d4ff;opacity:.19;font:650 clamp(12px,1.3vw,19px)/1.68 ui-monospace,SFMono-Regular,Consolas,monospace;mask-image:linear-gradient(100deg,transparent 4%,#000 63%)}
+.poster-kicker{display:inline-flex;align-items:center;gap:8px;color:var(--poster-aqua);background:#0a2139;border:1px solid #368a91;border-radius:4px;padding:6px 9px;font-size:10px;font-weight:800;letter-spacing:.13em;line-height:1.35;text-transform:uppercase}
+.poster-kicker svg{flex:none}
+.crash-banner .poster-title{display:flex;align-items:center;flex-wrap:wrap;gap:0 .18em;margin:12px 0 10px;line-height:.94;font-size:clamp(42px,5.7vw,80px);letter-spacing:-.07em}
+.poster-letter{font-size:1.64em;line-height:.88;font-weight:900;color:var(--poster-aqua);background:linear-gradient(160deg,#dbfff4 7%,#76f7e1 45%,#40b0ff 97%);background-clip:text;-webkit-text-fill-color:transparent}
+.poster-by{font-size:.7em;line-height:1.01;font-weight:650;letter-spacing:-.056em}
+.poster-by strong{color:#fff;font-weight:850}
+.crash-banner .poster-deck{max-width:36ch;font-size:clamp(14px,1.6vw,18px);line-height:1.45;color:#d7e6ff}
+.poster-deck strong{color:var(--poster-aqua)}
+.crash-banner .upcoming-time{width:fit-content;margin-top:20px;padding:8px 12px;border:1px solid #5686bc;border-left:3px solid var(--poster-aqua);border-radius:5px;background:#112a4e;line-height:1.35;font-size:clamp(13px,1.4vw,16px)}
+.crash-banner .upcoming-time svg{color:var(--poster-aqua);margin-top:0}
+.poster-benefits{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0;padding:0;list-style:none}
+.poster-benefits li{display:flex;gap:7px;align-items:center;padding:7px 9px;border:1px solid #4d6488;border-radius:5px;background:#122441;color:#f0f6ff;font-size:12px;line-height:1.2}
+.poster-benefits li:first-child svg{color:var(--poster-aqua)}
+.poster-benefits li:last-child{border-color:#987844;background:#30251b;color:var(--poster-gold)}
+.poster-benefits small{display:block;margin-top:2px;font-size:10px;color:#c8daef}
+.crash-banner .poster-cta{width:fit-content;margin-top:17px;background:var(--poster-aqua);border-color:#9cfff0;color:#092539}
+.crash-banner .poster-cta:hover{background:#aaffec}
+.crash-banner .upcoming-faculty{position:relative;min-width:0;min-height:0;grid-template-rows:minmax(212px,1fr) auto;align-content:stretch;background:#0a1c36;border-left:1px solid #365783}
+.poster-portrait{position:relative;isolation:isolate;overflow:hidden;min-height:0;background:radial-gradient(ellipse at 45% 45%,#1a467b,#09182e 75%)}
+.poster-portrait::after{position:absolute;inset:0;content:"";background:linear-gradient(0deg,#091c36 0%,transparent 34%);pointer-events:none}
+.crash-banner .faculty-photo{position:absolute;inset:0;height:100%;width:100%;object-fit:cover;object-position:50% 32%}
+.poster-c-mark{position:absolute;z-index:1;top:15px;right:16px;padding:5px 8px;color:var(--poster-aqua);border:1px solid #52b4b4;background:#091e37cf;border-radius:4px;font:750 12px ui-monospace,SFMono-Regular,Consolas,monospace}
+.poster-faculty-info{position:relative;padding:0 clamp(14px,2.1vw,25px) 14px}
+.poster-impact{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;margin-top:-21px;padding:9px 12px;background:linear-gradient(115deg,#17344f,#0d213e);border:1px solid #b59050;border-radius:7px;box-shadow:0 8px 18px #020b1d55;color:var(--poster-gold)}
+.poster-impact-copy{display:grid;gap:4px;min-width:0}.poster-impact-copy>strong{font-size:clamp(23px,3vw,42px);font-weight:900;line-height:1.06;letter-spacing:-.055em}
+.poster-impact-copy>p{color:#fff2d5;font-size:clamp(11px,1.2vw,14px);font-weight:650;line-height:1.25}
+.crash-banner .faculty-caption{padding:10px 0 0;border:0;gap:1px}
+.crash-banner .faculty-caption>span{color:var(--poster-aqua)}
+.crash-banner .faculty-caption>strong{font-size:19px}
+.crash-banner .faculty-caption p{font-size:12px}
+.secondary-banner.crash-banner .upcoming-copy{padding:18px}
+.secondary-banner.crash-banner .poster-title{font-size:clamp(34px,4vw,55px)}
+.secondary-banner.crash-banner .poster-impact{gap:6px;padding:8px}
+.secondary-banner.crash-banner .poster-impact>svg{display:none}
+.secondary-banner.crash-banner .poster-impact{grid-template-columns:minmax(0,1fr)}
+.secondary-banner.crash-banner .poster-impact-copy>strong{font-size:clamp(20px,2.7vw,31px)}
+@media(max-width:660px){.crash-banner{grid-template-columns:minmax(0,1fr)}.crash-banner .upcoming-copy{padding:24px 20px 20px}.crash-banner .upcoming-faculty{border-left:0;border-top:1px solid #365783;grid-template-rows:clamp(170px,54vw,294px) auto}.crash-banner .poster-title{font-size:clamp(43px,10vw,65px)}.poster-faculty-info{padding:0 17px 15px}.poster-impact-copy>strong{font-size:clamp(25px,7vw,36px)}.poster-impact-copy>p{font-size:13px}}
+
+.course-format{margin-top:34px;padding-top:18px;scroll-margin-top:18px;border-top:2px solid var(--line)}
+.course-format>h3{font-size:clamp(23px,3vw,32px);margin-bottom:8px}
+.course-format>p{max-width:76ch;font-size:14px}
+.course-format .track-heading h4{font-size:22px}
+.course .course-instructor{margin-top:auto;margin-bottom:9px;font-size:13px;font-weight:700;color:var(--green)}
+.course-instructor+.course-meta{margin-top:0}
+.exclusive-actions{margin:0 0 14px;gap:12px}
+.exclusive-actions>p{font-size:13px}
+
+.intensive-topics{margin-top:8px;font-size:14px}.intensive-topics summary{color:var(--green);cursor:pointer;font-weight:700}.intensive-topics ul{padding-left:20px}.days .intensive-topics li{display:list-item;padding:2px 0;border:0}
+
+@media(max-width:660px){.brand-logo{width:34px;height:34px}.institution-logo{width:43px}}

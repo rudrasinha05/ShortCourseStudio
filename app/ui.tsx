@@ -2,7 +2,24 @@ import {ArrowRight} from "lucide-react";
 import {feeText} from "@/lib/courses";
 import {applicationsStatus} from "@/lib/enrollment";
 import {CAREER_DEPARTMENT,DEPARTMENT,DEPARTMENT_URL,INSTITUTE,POWERED_BY,SITE_NAME} from "@/lib/programme";
-export function Header(){return <header className="top"><div className="wrap nav"><a className="brand" href="/"><span><strong>{SITE_NAME}</strong><small>Five-day practical courses</small></span></a><nav aria-label="Main"><a href="/#courses">Courses</a><a href="/#programme">Programme</a><a className="navbutton" href="/apply">Applications <ArrowRight size={15}/></a></nav></div><div className="institution-strip"><div className="wrap institution-inner"><div className="institution-mark" aria-label={POWERED_BY}><span>Powered by</span><strong>GL Bajaj</strong></div><ul className="institution-departments" aria-label="Departments"><li>{DEPARTMENT}</li><li>{CAREER_DEPARTMENT}</li></ul></div></div></header>}
+export function Header(){
+ return <header className="top">
+  <div className="wrap nav">
+   <a className="brand" href="/">
+    <img className="brand-logo" src="/favicon.svg" alt="" width={40} height={40}/>
+    <span><strong>{SITE_NAME}</strong><small>Five-day practical courses</small></span>
+   </a>
+   <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/#programme">Programme</a><a className="navbutton" href="/apply">Applications <ArrowRight size={15}/></a></nav>
+  </div>
+  <div className="institution-strip"><div className="wrap institution-inner">
+   <div className="institution-mark" aria-label={POWERED_BY}>
+    <img className="institution-logo" src="/gl-bajaj-crest.png" alt="" width={74} height={62}/>
+    <div><span>Powered by</span><strong>GL Bajaj</strong></div>
+   </div>
+   <ul className="institution-departments" aria-label="Departments"><li>{DEPARTMENT}</li><li>{CAREER_DEPARTMENT}</li></ul>
+  </div></div>
+ </header>;
+}
 export function Footer(){return <footer><div className="wrap footer"><div><strong>{SITE_NAME}</strong><p>{POWERED_BY}</p><p>{INSTITUTE} · Greater Noida</p><p>{DEPARTMENT}</p><p>{CAREER_DEPARTMENT}</p><p>Independently organised · Private review draft</p></div><div><a href={DEPARTMENT_URL}>Department website</a><a href="/privacy">Privacy</a><a href="/admin">Admin</a></div></div></footer>}
 export function Frame({children}:{children:React.ReactNode}){return <><a href="#main" className="skip">Skip to content</a><Header/><main id="main">{children}</main><Footer/></>}
 export function Badge({status}:{status:string}){return <span className={"badge "+status}><i/>{applicationsStatus(status)}</span>}
