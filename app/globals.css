@@ -466,3 +466,7 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 
 .payment-status-check{display:grid;gap:8px;justify-items:start;margin-top:10px}
 .payment-status-check .mutedbox{margin:0}
+
+.nav nav a.portal-auth-link{background:#234c7b;border-color:#234c7b;color:#fff}
+.nav nav a.portal-auth-link:hover{background:#173e69;border-color:#173e69;color:#fff}
+.nav nav a.portal-auth-link:focus-visible{outline:2px solid #275f9c;outline-offset:3px}

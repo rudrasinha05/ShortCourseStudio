@@ -94,7 +94,7 @@ export async function getApplication(id:string,token:string){
 }
 export async function getOwnedApplication(id:string,userId:string){
  if(!/^SCS-[A-F0-9]{20}$/.test(id)||!userId)return null;
- return db().prepare("SELECT * FROM applications WHERE id=? AND student_user_id=?").bind(id,userId).first<Application>();
+ return db().prepare("SELECT * FROM applications WHERE id=? AND (student_user_id=? OR (student_user_id IS NULL AND submitted_by_user_id=?))").bind(id,userId,userId).first<Application>();
 }
 export const createRef=()=>"SCS-"+crypto.randomUUID().replace(/-/g,"").slice(0,20).toUpperCase();
 export async function gateway<T={id:string;order_id?:string;amount:number;currency:string;status:string}>(path:string,body?:Record<string,unknown>){

@@ -27,7 +27,7 @@ export default async function Faculty({searchParams}:{searchParams:Promise<{mess
  const user=requestIdentity(h);
  if(!user)return <PortalSignIn role="Faculty" path={url(view)}/>;
  const faculty=await facultyFor(user);
- if(!faculty)return <Frame><div className="wrap portal admin-shell faculty-shell">
+ if(!faculty)return <Frame portalHeader={{role:"Faculty",path:url(view),signedIn:true}}><div className="wrap portal admin-shell faculty-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Faculty Portal</h1><p>Teaching workspace</p></div><PortalAccount email={user.email} path="/faculty"/></header>
   <div className="admin-layout"><nav className="admin-sidebar faculty-access-nav" aria-label="Faculty access guide">
    <p className="admin-nav-label">Access guide</p>
@@ -53,7 +53,7 @@ export default async function Faculty({searchParams}:{searchParams:Promise<{mess
   {label:"Manage assigned batches",help:"Check class timings and record progress.",view:"teaching",icon:BookOpen},
   {label:"Submit a course",help:"Send a new or revised syllabus for review.",view:"proposals",icon:ClipboardPlus},
  ] as const;
- return <Frame><div className="wrap portal admin-shell faculty-shell">
+ return <Frame portalHeader={{role:"Faculty",path:url(view),signedIn:true}}><div className="wrap portal admin-shell faculty-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Faculty Portal</h1><p>{faculty.name} · {faculty.designation}</p></div><PortalAccount email={user.email} path={url(view)}/></header>
   <div className="admin-layout">
    <nav className="admin-sidebar" aria-label="Faculty sections"><p className="admin-nav-label">Workspace</p>{sections.map(({id,label,icon:Icon})=><a href={url(id)} key={id} aria-current={id===view?"page":undefined}><Icon size={17} aria-hidden="true"/><span>{label}</span></a>)}</nav>

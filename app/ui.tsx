@@ -1,17 +1,23 @@
 import {getSiteContent} from "@/lib/admin-controls";
-import {ArrowRight} from "lucide-react";
+import {chatGPTSignInPath,getChatGPTUser} from "./chatgpt-auth";
+import {ArrowRight,UserRound} from "lucide-react";
 import {feeText} from "@/lib/courses";
 import {applicationsStatus} from "@/lib/enrollment";
 import {CAREER_DEPARTMENT,DEPARTMENT,DEPARTMENT_URL,INSTITUTE,POWERED_BY,SITE_NAME} from "@/lib/programme";
-export async function Header(){
- const content=await getSiteContent();
+export type PortalRole="Student"|"Faculty"|"Admin";
+type PortalHeader={role:PortalRole;path:string;signedIn?:boolean};
+export async function Header({portal,homeNavigation=false}:{portal?:PortalHeader;homeNavigation?:boolean}={}){
+ const [content,homeUser]=await Promise.all([getSiteContent(),homeNavigation?getChatGPTUser():null]);
+ const login=homeNavigation?{role:"Student",path:"/student"}:portal&&!portal.signedIn?portal:undefined;
  return <header className="top">
   <div className="wrap nav">
    <a className="brand" href="/">
     <img className="brand-logo" src={content.studioLogo||"/favicon.svg"} alt="" width={40} height={40}/>
     <span><strong>{SITE_NAME}</strong><small>{content.tagline||"Five-day practical courses"}</small></span>
    </a>
-   <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/student">Student Portal</a><a href="/faculty">Faculty Portal</a><a href="/help">Help</a><a className="navbutton" href="/apply">Applications <ArrowRight size={15}/></a></nav>
+   <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/student" aria-current={portal?.role==="Student"?"page":undefined}>Student Portal</a>{!homeNavigation&&portal?.role!=="Student"&&<a href="/faculty" aria-current={portal?.role==="Faculty"?"page":undefined}>Faculty Portal</a>}<a href="/help">Help</a>{portal?.role==="Student"&&<a className="navbutton" href="/apply">Applications <ArrowRight size={15} aria-hidden="true"/></a>}
+    {login&&<a className="navbutton portal-auth-link" href={homeUser?login.path:chatGPTSignInPath(login.path)} target="_top"><UserRound size={16} aria-hidden="true"/> {homeUser?"Open Student Portal":login.role+" Login / Sign up"}</a>}
+   </nav>
   </div>
   <div className="institution-strip"><div className="wrap institution-inner">
    <div className="institution-mark" aria-label={POWERED_BY}>
@@ -35,6 +41,6 @@ export async function Footer(){
   <small className="footer-status">Independently organised · Private review draft</small>
  </div></footer>;
 }
-export function Frame({children}:{children:React.ReactNode}){return <><a href="#main" className="skip">Skip to content</a><Header/><main id="main">{children}</main><Footer/></>}
+export function Frame({children,portalHeader,homeNavigation}:{children:React.ReactNode;portalHeader?:PortalHeader;homeNavigation?:boolean}){return <><a href="#main" className="skip">Skip to content</a><Header portal={portalHeader} homeNavigation={homeNavigation}/><main id="main">{children}</main><Footer/></>}
 export function Badge({status}:{status:string}){return <span className={"badge "+status}><i/>{applicationsStatus(status)}</span>}
 export function Facts({fee=feeText}:{fee?:string}={}){return <dl className="facts"><div><dt>Duration</dt><dd>5 days</dd></div><div><dt>Daily schedule</dt><dd>3 hours/day</dd></div><div><dt>Fee per course</dt><dd>{fee}</dd></div></dl>}

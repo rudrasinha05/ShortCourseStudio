@@ -21,7 +21,7 @@ const current=(req:Request)=>new URL(req.url);
 const redirectTo=(path:string,values:Record<string,string>)=>path+"?"+new URLSearchParams(values);
 function receipt(req:Request,id:string,token:string,step:"billing"|"receipt"="receipt"){
  const secure=current(req).protocol==="https:"||req.headers.get("x-forwarded-proto")==="https";
- const cookie=accessCookie+"="+id+"."+token+"; Path=/apply; HttpOnly; SameSite=Lax; Max-Age=604800"+(secure?"; Secure":"");
+ const cookie=accessCookie+"="+id+"."+token+"; Path=/apply; HttpOnly; Max-Age=604800"+(secure?"; SameSite=None; Secure; Partitioned":"; SameSite=Lax");
  return move(checkoutUrl(step,id),cookie);
 }
 async function readForm(req:Request,allowFile:boolean){

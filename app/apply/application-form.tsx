@@ -37,7 +37,7 @@ export default function ApplicationForm({courses,selected,mode}:{courses:CourseO
    <fieldset className="apply-fieldset"><legend>1. Contact details</legend>
     <div className="portal-fields">
      <label>Full name *<input name="name" autoComplete="name" required minLength={2} maxLength={100}/></label>
-     <label>Email address *<input name="email" type="email" autoComplete="email" required maxLength={160}/></label>
+     <label>Email address *<input name="email" type="email" autoComplete="email" required maxLength={160}/><span className="apply-optional">Use your sign-in email if you want this application linked in the Student Portal.</span></label>
      <label>Mobile number <span className="apply-optional">Optional</span><input name="phone" type="tel" autoComplete="tel" maxLength={24} placeholder="+91"/></label>
     </div>
     <label className="check"><input type="checkbox" name="whatsappReminders" value="yes"/><span>Send me class reminders on WhatsApp at this number (optional). Use an Indian mobile number or include the country code.</span></label>

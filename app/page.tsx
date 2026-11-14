@@ -19,7 +19,7 @@ export default async function Home(){
  const cCourse=courses.find(c=>c.slug===CRASH_SLUG);
  const exclusive=courses.filter(c=>c.exclusive&&c.slug!==CRASH_SLUG);
 
- return <Frame>
+ return <Frame homeNavigation>
   {controls.announcement&&<p className="site-announcement"><span className="wrap">{controls.announcement}</span></p>}
   <section className="hero"><div className="wrap hero-stack">
    {slides.length?<HomeCarousel slides={slides.map((item,i)=>({id:item.slug,title:item.title,content:<FeaturedBanner item={item} heroTitle={i===0} now={now}/>}))}/>:<div className="homepage-intro">

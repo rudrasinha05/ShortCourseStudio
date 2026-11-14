@@ -59,7 +59,7 @@ export default async function Student({searchParams}:{searchParams:Promise<{mess
  const slides=content.slides.length?content.slides.flatMap(slug=>featured.filter(c=>c.slug===slug)):defaults;
  const [sessions,learning,materials]=view==="courses"?await Promise.all([Promise.all(enrolled.map(r=>getClassSessions(r.slug,r.batch))),learningFor(enrolled.map(r=>r.id)),Promise.all(enrolled.map(r=>getMaterials(r.slug,r.batch)))]):[[],[],[]] as const;
  const stats=[{label:"Enrolled courses",value:enrolled.length,view:"courses"},{label:"Applications",value:rows.length,view:"applications"},{label:"Verified payments",value:rows.filter(r=>r.payment_state==="paid").length,view:"applications"}] as const;
- return <Frame><div className="wrap portal admin-shell student-shell">
+ return <Frame portalHeader={{role:"Student",path:studentUrl(view),signedIn:true}}><div className="wrap portal admin-shell student-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Student Portal</h1><p>My learning dashboard</p></div><PortalAccount email={user.email} path={studentUrl(view)}/></header>
   <div className="admin-layout">
    <nav className="admin-sidebar" aria-label="Student sections"><p className="admin-nav-label">Workspace</p>{studentSections.map(({id,label,icon:Icon})=><a href={studentUrl(id)} aria-current={id===view?"page":undefined} key={id}><Icon size={17} aria-hidden="true"/><span>{label}</span></a>)}</nav>

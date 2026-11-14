@@ -1,13 +1,14 @@
 import type {ReactNode} from "react";
-import {Frame} from "./ui";
+import {Frame,type PortalRole} from "./ui";
 import {chatGPTSignInPath,chatGPTSignOutPath} from "./chatgpt-auth";
 import {ArrowRight,KeyRound,LogOut} from "lucide-react";
 
 export function PortalAccount({email,path}:{email:string;path:string}){
  return <div className="portal-account"><span>Signed in as <strong>{email}</strong></span><a className="admin-site-link" href={chatGPTSignOutPath(path)} target="_top"><LogOut size={16} aria-hidden="true"/> Sign out</a></div>;
 }
-export function PortalFrame({role,heading,description,links,children,account}:{role:string;heading:string;description:string;links?:[string,string][];children:ReactNode;account?:{email:string;path:string}}){
- return <Frame><div className="wrap portal">
+export function PortalFrame({role,heading,description,links,children,account,signInPath}:{role:string;heading:string;description:string;links?:[string,string][];children:ReactNode;account?:{email:string;path:string};signInPath?:string}){
+ const portalRole:PortalRole|undefined=role==="Student"||role==="Faculty"||role==="Admin"?role:undefined;
+ return <Frame portalHeader={portalRole&&(signInPath||account)?{role:portalRole,path:account?.path??signInPath??"/",signedIn:!!account}:undefined}><div className="wrap portal">
   <section className="portal-hero">
    <span className="eyebrow">{role} portal</span><h1>{heading}</h1><p>{description}</p>
    {account&&<PortalAccount {...account}/>}
@@ -22,8 +23,13 @@ const roleInfo:Record<string,string>={
  Staff:"Use the account your administrator invited. Your dashboard shows tools for your assigned role.",
 };
 export function PortalSignIn({role,path}:{role:string;path:string}){
- return <PortalFrame role={role} heading={role+" Portal"} description={roleInfo[role]??"Sign in to open your dashboard."}>
-  <section className="panel formpanel portal-auth-panel"><div className="admin-icon"><KeyRound size={20} aria-hidden="true"/></div><h2>Sign in to the {role} Portal</h2><p>Your account is verified through ChatGPT. Access depends on your portal role.</p>
+ const student=role==="Student";
+ const description=student?"Use your existing ChatGPT account or create one to continue as a student.":
+  role==="Faculty"?"Sign in or create a ChatGPT account with the email registered by your administrator. An active faculty profile is required.":
+  role==="Admin"?"Use the site owner’s ChatGPT account. Creating an account does not grant admin access.":
+  "Your account is verified through ChatGPT. Access depends on your portal role.";
+ return <PortalFrame role={role} heading={role+" Portal"} signInPath={path} description={roleInfo[role]??"Sign in to open your dashboard."}>
+  <section className="panel formpanel portal-auth-panel"><div className="admin-icon"><KeyRound size={20} aria-hidden="true"/></div><h2>{student?"Log in or sign up for the Student Portal":<>Sign in to the {role} Portal</>}</h2><p>{description}</p>
    <a className="btn primary" href={chatGPTSignInPath(path)} target="_top">Continue with ChatGPT <ArrowRight size={16} aria-hidden="true"/></a><a className="textlink" href="/help#sign-in">Need help signing in?</a>
   </section>
  </PortalFrame>;

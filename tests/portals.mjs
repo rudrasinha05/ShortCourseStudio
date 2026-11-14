@@ -19,6 +19,39 @@ try{
   assert.match(signIn,/Continue with ChatGPT/);
   assert.ok(signIn.includes('/signin-with-chatgpt?return_to='+encoded));
  }
+ const header=(page)=>page.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0]??"";
+ const studentSignIn=await html("/student?view=applications");
+ const openHeader=header(studentSignIn);
+ assert.match(openHeader,/Student(?:<!-- -->)? Login \/ Sign up/);
+ assert.match(openHeader,/href="\/signin-with-chatgpt\?return_to=%2Fstudent%3Fview%3Dapplications" target="_top"/);
+ assert.doesNotMatch(openHeader,/Faculty Portal|href="\/faculty"|return_to=%2Fadmin|return_to=%2Ffaculty/);
+ const activeHeader=header(await html("/student",student));
+ assert.doesNotMatch(activeHeader,/Login \/ Sign up|Faculty Portal/);
+ assert.match(header(await html("/faculty")),/href="\/faculty"/);
+ const homepage=await html("/"),homepageHeader=header(homepage);
+ assert.doesNotMatch(homepageHeader,/href="\/faculty"/);
+ assert.match(homepage.split("<footer")[1]??"",/href="\/faculty"/);
+ assert.match(homepageHeader,/Student(?:<!-- -->)? Login \/ Sign up/);
+ assert.match(homepageHeader,/href="\/signin-with-chatgpt\?return_to=%2Fstudent" target="_top"/);
+ assert.doesNotMatch(homepageHeader,/href="\/apply"|return_to=%2Fadmin|return_to=%2Ffaculty/);
+ for(const path of ["/faculty","/admin","/apply","/help"]){
+  assert.doesNotMatch(header(await html(path)),/href="\/apply"/);
+ }
+ assert.match(openHeader,/href="\/apply">Applications/);
+ assert.match(activeHeader,/href="\/apply">Applications/);
+ assert.match(header(await html("/",admin)),/href="\/student" target="_top"[^>]*>[\s\S]*Open Student Portal/);
+ assert.doesNotMatch(header(await html("/",admin)),/signin-with-chatgpt/);
+ const facultySignIn=await html("/faculty?view=proposals");
+ assert.match(header(facultySignIn),/Faculty(?:<!-- -->)? Login \/ Sign up/);
+ assert.match(header(facultySignIn),/href="\/signin-with-chatgpt\?return_to=%2Ffaculty%3Fview%3Dproposals" target="_top"/);
+ assert.doesNotMatch(header(facultySignIn),/return_to=%2Fstudent|return_to=%2Fadmin/);
+ const adminSignIn=await html("/admin");
+ assert.match(header(adminSignIn),/Admin(?:<!-- -->)? Login \/ Sign up/);
+ assert.match(header(adminSignIn),/href="\/signin-with-chatgpt\?return_to=%2Fadmin" target="_top"/);
+ assert.match(adminSignIn,/Creating an account does not grant admin access/);
+ assert.doesNotMatch(header(adminSignIn),/return_to=%2Fstudent|return_to=%2Ffaculty/);
+ assert.doesNotMatch(header(await html("/admin",admin)),/Login \/ Sign up/);
+ assert.doesNotMatch(header(await html("/faculty",student)),/Login \/ Sign up/);
  assert.match(await html("/student",student),/aria-label="Student sections"/);
  assert.match(await html("/student",student),/admin-sidebar/);
  assert.match(await html("/student",student),/signout-with-chatgpt/);
@@ -108,9 +141,16 @@ try{
  assert.equal(different.status,303);
  const alternate=new URL(different.headers.get("Location"),"https://site.test").searchParams.get("ref");
  assert.match(alternate??"",/^SCS-/);
- const alternateRecord=await db.prepare("SELECT email,student_user_id FROM applications WHERE id=?").bind(alternate).first();
+ const alternateRecord=await db.prepare("SELECT email,student_user_id,submitted_by_user_id FROM applications WHERE id=?").bind(alternate).first();
  assert.equal(alternateRecord.email,"different@example.invalid");
  assert.equal(alternateRecord.student_user_id,null);
+ assert.equal(alternateRecord.submitted_by_user_id,"student-a");
+ assert.match(different.headers.get("Set-Cookie"),/SameSite=None; Secure; Partitioned/);
+ assert.match(await html("/apply/billing?ref="+alternate,student),/Billing address/);
+ assert.doesNotMatch(await html("/apply/billing?ref="+alternate,other),/Billing details/);
+ const paymentStatus=(actor)=>mf.dispatchFetch("https://site.test/api/applications/status",{method:"POST",headers:{...actor,"content-type":"application/json"},body:JSON.stringify({id:alternate})});
+ assert.equal((await paymentStatus(student)).status,200);
+ assert.equal((await paymentStatus(other)).status,404);
  const alternateCookie=different.headers.get("Set-Cookie").split(";")[0];
  assert.match(await html("/apply?ref="+alternate,{...student,Cookie:alternateCookie}),/Application received/);
  assert.doesNotMatch(await html("/student?view=applications",student),new RegExp(alternate));
@@ -119,6 +159,8 @@ try{
  const otherLogin=actor("student-c","different@example.invalid");
  assert.match(await result("/forms/student/claim",otherLogin,{id:alternate,code:alternateCode}),/linked/);
  assert.match(await html("/student?view=applications",otherLogin),new RegExp(alternate));
+ assert.equal((await paymentStatus(student)).status,404);
+ assert.equal((await paymentStatus(otherLogin)).status,200);
  const app=await req("/forms/apply",student,form);
  assert.equal(app.status,303);
  const reference=(await db.prepare("SELECT id FROM applications WHERE student_user_id=?").bind("student-a").first()).id;

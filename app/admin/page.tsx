@@ -58,7 +58,7 @@ export default async function Page({searchParams}:{searchParams:Promise<Params>}
  const intakeCourse=explicitCourse&&explicitCourse.visibility==="published"&&!cDayNumber(explicitCourse.slug)?explicitCourse:undefined;
  const notice=p.message?messages[p.message]:p.portalMessage?facultyMessages[p.portalMessage]:p.intakeMessage?intakeMessages[p.intakeMessage]:p.controlMessage==="saved"?"Changes saved.":p.controlMessage==="invalid"?"Nothing was saved. Check the fields and try again.":undefined;
  const ok=["saved","reviewed","classes-saved","access-saved","banner-saved","faculty-added","faculty-updated","assignment-saved","proposal-reviewed","intake-saved","site-saved"].includes(p.message??p.portalMessage??p.intakeMessage??p.controlMessage??"");
- return <Frame><div className="wrap portal admin-shell">
+ return <Frame portalHeader={{role:"Admin",path:"/admin",signedIn:true}}><div className="wrap portal admin-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Admin Portal</h1><p>Manage courses, students and the website from one place.</p></div><PortalAccount email={user.email} path="/admin"/></header>
   <div className="admin-layout">
    <nav className="admin-sidebar" aria-label="Admin sections"><p className="admin-nav-label">Workspace</p>{adminSections.map(item=>{const Icon=icons[item.id];return <a key={item.id} aria-current={item.id===section?"page":undefined} href={adminUrl(item.id)}><Icon size={17} aria-hidden="true"/><span>{item.label}</span></a>;})}</nav>

@@ -7,6 +7,7 @@ export const applications = sqliteTable("applications",{
  name:text().notNull(), email:text().notNull(), college:text().notNull(),
  createdAt:text("created_at").notNull(), amount:integer().notNull(), orderId:text("order_id").unique(), paymentId:text("payment_id").unique(),
  studentUserId:text("student_user_id"),
+ submittedByUserId:text("submitted_by_user_id"),
  classAccess:integer("class_access").notNull().default(0),
  reviewState:text("review_state").notNull().default("submitted"),
  paymentOrderMode:text("payment_order_mode"),
