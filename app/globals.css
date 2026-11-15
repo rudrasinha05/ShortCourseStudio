@@ -470,6 +470,18 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 .nav nav a.portal-auth-link{background:#234c7b;border-color:#234c7b;color:#fff}
 .nav nav a.portal-auth-link:hover{background:#173e69;border-color:#173e69;color:#fff}
 .nav nav a.portal-auth-link:focus-visible{outline:2px solid #275f9c;outline-offset:3px}
+.student-login-dialog{position:fixed;inset:0;margin:auto;width:min(440px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;padding:0;border:1px solid #dbe5f1;border-radius:20px;background:#fff;color:#172941;box-shadow:0 24px 80px #0a22404d;text-align:left}
+.student-login-dialog::backdrop{background:#132a44a6;backdrop-filter:blur(3px)}
+.student-login-inner{position:relative;display:grid;gap:14px;padding:clamp(22px,5vw,34px);text-align:center}
+.student-login-icon{display:grid;place-items:center;justify-self:center;width:56px;height:56px;border-radius:16px;background:#eaf2fb;color:#234c7b}
+.student-login-inner h2{font-size:clamp(25px,5vw,32px);line-height:1.13;margin:0}
+.student-login-inner p{color:#405470;margin:0;line-height:1.55}
+.student-login-close{position:absolute;top:9px;right:9px;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:12px;background:transparent;color:#294661;cursor:pointer}
+.student-login-close:hover,.student-login-browse:hover{background:#f0f5fc}
+.nav nav .student-login-continue{display:inline-flex;justify-content:center;gap:8px;margin-top:6px;background:#234c7b;border-color:#234c7b;color:#fff}
+.nav nav .student-login-continue:hover{background:#173e69;color:#fff}
+.student-login-browse{min-height:44px;border:0;border-radius:10px;background:transparent;color:#234c7b;font:inherit;font-weight:650;cursor:pointer}
+.student-login-dialog :focus-visible{outline:2px solid #275f9c;outline-offset:2px}
 
 .profile-nav{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid var(--line);padding:2px;flex:none}
 .profile-avatar{display:block;width:64px;height:64px;object-fit:cover;border-radius:50%;background:var(--soft);flex:none}

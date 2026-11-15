@@ -23,5 +23,15 @@ try{
  const html=await (await mf.dispatchFetch('https://site.test/login?return_to='+encodeURIComponent(path))).text();
  assert.ok(html.includes('/signin-with-chatgpt?return_to=%2Fstudent'));
  }
- console.log('PASS: portal login rendering, signed-in/logout destination, unsafe return paths.');
+ const home=await (await mf.dispatchFetch('https://site.test/')).text();
+ assert.match(home,/<dialog[^>]*id="home-student-login"/);
+ assert.match(home,/href="\/signin-with-chatgpt\?return_to=%2Fstudent" target="_top"/);
+ assert.match(home,/Browse courses without signing in/);
+ for(const path of ['/student','/admin','/faculty','/help','/login']){
+  const page=await (await mf.dispatchFetch('https://site.test'+path)).text();
+  assert.doesNotMatch(page,/<dialog[^>]*id="home-student-login"/);
+ }
+ const signedHome=await (await mf.dispatchFetch('https://site.test/',{headers:{'oai-authenticated-user-id':'test-user','oai-authenticated-user-email':'test@example.invalid'}})).text();
+ assert.doesNotMatch(signedHome,/<dialog[^>]*id="home-student-login"/);
+ console.log('PASS: portal login, safe return paths and signed-out homepage-only student login dialog.');
 }finally{await mf.dispose()}

@@ -1,5 +1,6 @@
 import {getSiteContent} from "@/lib/admin-controls";
-import {portalLoginPath,getChatGPTUser} from "./chatgpt-auth";
+import {chatGPTSignInPath,portalLoginPath,getChatGPTUser} from "./chatgpt-auth";
+import {HomeStudentLogin} from "./home-student-login";
 import {ProfileAvatar} from "./profile-avatar";
 import {UserRound} from "lucide-react";
 import {feeText} from "@/lib/courses";
@@ -17,7 +18,7 @@ export async function Header({portal,homeNavigation=false}:{portal?:PortalHeader
     <span><strong>{SITE_NAME}</strong><small>{content.tagline||"Five-day practical courses"}</small></span>
    </a>
    <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/help">Help</a>
-    {homeUser?<a className="profile-nav" href="/profile" aria-label="Open my profile" title="My profile"><ProfileAvatar name={homeUser.displayName}/></a>:<a className="navbutton portal-auth-link" href={portalLoginPath(login?.path??"/student")} target="_top"><UserRound size={16} aria-hidden="true"/> Sign in / Sign up</a>}
+    {homeUser?<a className="profile-nav" href="/profile" aria-label="Open my profile" title="My profile"><ProfileAvatar name={homeUser.displayName}/></a>:homeNavigation?<HomeStudentLogin loginPath={portalLoginPath("/student")} signInPath={chatGPTSignInPath("/student")}/>:<a className="navbutton portal-auth-link" href={portalLoginPath(login?.path??"/student")} target="_top"><UserRound size={16} aria-hidden="true"/> Sign in / Sign up</a>}
    </nav>
   </div>
   <div className="institution-strip"><div className="wrap institution-inner">
