@@ -18,7 +18,7 @@ try{
  }
  const html=await (await mf.dispatchFetch('https://site.test/login?return_to=%2Fstudent',{headers:{'oai-authenticated-user-id':'test-user','oai-authenticated-user-email':'test@example.invalid'}})).text();
  assert.ok(html.includes('Your account is currently signed in.'));
- assert.ok(html.includes('/signout-with-chatgpt?return_to=%2F%23courses'));
+ assert.ok(html.includes('/signout-with-chatgpt?return_to=%2F'));
  for(const path of ['https://evil.test','//evil.test','/login','/callback','/signout-with-chatgpt']){
  const html=await (await mf.dispatchFetch('https://site.test/login?return_to='+encodeURIComponent(path))).text();
  assert.ok(html.includes('/signin-with-chatgpt?return_to=%2Fstudent'));

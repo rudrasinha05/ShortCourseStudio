@@ -4,7 +4,7 @@ import {chatGPTSignInPath,chatGPTSignOutPath} from "./chatgpt-auth";
 import {ArrowRight,KeyRound,LogOut} from "lucide-react";
 
 export function PortalAccount({email}:{email:string;path:string}){
- return <div className="portal-account"><span>Signed in as <strong>{email}</strong></span><a className="admin-site-link" href={chatGPTSignOutPath("/#courses")} target="_top"><LogOut size={16} aria-hidden="true"/> Sign out</a></div>;
+ return <div className="portal-account"><span>Signed in as <strong>{email}</strong></span><a className="admin-site-link" href={chatGPTSignOutPath("/")} target="_top"><LogOut size={16} aria-hidden="true"/> Sign out</a></div>;
 }
 export function PortalFrame({role,heading,description,links,children,account,signInPath}:{role:string;heading:string;description:string;links?:[string,string][];children:ReactNode;account?:{email:string;path:string};signInPath?:string}){
  const portalRole:PortalRole|undefined=role==="Student"||role==="Faculty"||role==="Admin"?role:undefined;
