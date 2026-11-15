@@ -68,6 +68,9 @@ for(const mode of ["test","live"]){
   assert.equal((await post("/api/payments/verify",check)).status,202);
   assert.equal((await application()).class_access,0);
   const paymentsList="/v1/orders/"+order+"/payments";
+  provider.intercept({path:paymentsList,method:"GET"}).reply(200,{items:[{...details,status:"failed"}]},{headers:json});
+  assert.equal((await (await post("/api/payments/reconcile",ref)).json()).paymentState,"unpaid");
+  assert.equal((await application()).class_access,0);
   const orderMode=()=>db.prepare("SELECT payment_order_mode FROM applications WHERE id=?").bind(id).first("payment_order_mode");
   assert.equal(await orderMode(),mode);
   await db.prepare("UPDATE applications SET payment_order_mode=? WHERE id=?").bind(mode==="live"?"test":"live",id).run();
@@ -109,4 +112,4 @@ for(const mode of ["test","live"]){
   }
  }finally{await mf.dispose();await fetchMock.close();}
 }
-console.log("PASS: mocked Razorpay order, fixed amount, wrong signature/amount, pending capture, test isolation, verified enrollment, replay access and duplicate capture after revocation, status recovery and test/live isolation.");
+console.log("PASS: mocked Razorpay order, fixed amount, wrong signature/amount, failed payment, pending capture, verified enrollment, replay access, duplicate capture after revocation, status recovery and test/live isolation.");
