@@ -1,0 +1,31 @@
+import {Miniflare} from 'miniflare';
+import {readFile,readdir} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const root='dist/server';
+const modules=['index.js',...(await readdir(root,{recursive:true})).filter(p=>/\.m?js$/.test(p)&&p!=='index.js')].map(p=>({type:'ESModule',path:root+'/'+p}));
+const mf=new Miniflare({modulesRoot:root,modules,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['BUCKET'],bindings:{SITE_ADMIN_EMAIL:'owner@example.invalid'}});
+const actor=(id,email)=>({'oai-authenticated-user-id':id,'oai-authenticated-user-email':email});
+const student=actor('student','student@example.invalid'),other=actor('other','other@example.invalid');
+const req=(path,headers=student,opts={})=>mf.dispatchFetch('https://site.test'+path,{...opts,headers:{...headers,...opts.headers},redirect:'manual'});
+try{
+ const db=await mf.getD1Database('DB');
+ for(const file of (await readdir('drizzle')).filter(x=>x.endsWith('.sql')).sort())for(const s of (await readFile('drizzle/'+file,'utf8')).split('--> statement-breakpoint'))if(s.trim())await db.prepare(s.trim()).run();
+ let response=await req('/profile',{});assert.equal(response.status,307);assert.ok(response.headers.get('location').includes('/login?return_to=%2Fprofile'));
+ const profile=await (await req('/profile')).text();assert.ok(profile.includes('My profile'));assert.ok(profile.includes('Upload profile photo'));assert.ok(!profile.split('<main')[1].split('</main>')[0].includes('href="/admin"'));
+ const owner=await (await req('/profile',actor('owner','owner@example.invalid'))).text();assert.ok(owner.includes('href="/admin"'));
+ const nav=profile.split('<nav aria-label="Main">')[1].split('</nav>')[0];assert.ok(!nav.includes('Student Portal'));assert.ok(!nav.includes('Faculty Portal'));assert.ok(nav.indexOf('/help')<nav.indexOf('/profile'));assert.ok(nav.includes('Open my profile'));
+ const anonymous=await (await req('/',{})).text();assert.ok(anonymous.includes('Sign in / Sign up'));
+ const application=await (await req('/apply')).text();assert.ok(application.includes('application-profile'));assert.ok(application.includes('src="/profile/photo"'));
+ assert.equal((await req('/profile/photo',{})).status,401);
+ assert.equal((await req('/profile/photo')).headers.get('content-type'),'image/svg+xml');
+ const photo=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7wAAAABJRU5ErkJggg==','base64');
+ const upload={method:'POST',body:photo,headers:{origin:'https://site.test','content-type':'image/png'}};
+ assert.equal((await req('/profile/photo',student,{...upload,headers:{...upload.headers,origin:'https://evil.test'}})).status,403);
+ assert.equal((await req('/profile/photo',student,{...upload,body:'<svg/>'})).status,400);
+ assert.equal((await req('/profile/photo',student,upload)).status,204);
+ response=await req('/profile/photo');assert.equal(response.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await response.arrayBuffer()),photo);assert.equal(response.headers.get('cache-control'),'private, no-store');
+ assert.equal((await req('/profile/photo',other)).headers.get('content-type'),'image/svg+xml');
+ assert.equal((await req('/profile/photo',student,{method:'DELETE',headers:{origin:'https://site.test'}})).status,204);
+ assert.equal((await req('/profile/photo')).headers.get('content-type'),'image/svg+xml');
+ console.log('PASS: profile access, roles, header, application photo, upload/remove, private storage isolation and CSRF.');
+}finally{await mf.dispose()}

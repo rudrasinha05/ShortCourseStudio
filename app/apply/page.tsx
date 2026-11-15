@@ -1,3 +1,4 @@
+import {getChatGPTUser} from "../chatgpt-auth";
 import {PaymentStatusCheck} from "./payment-status-check";
 import {checkoutStatus,checkoutUrl,getBillingAddress} from "@/lib/billing";
 import {formFields,getBatchRules,getNoticeTemplates,priceText} from "@/lib/admin-controls";
@@ -30,6 +31,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
  const value=(await cookies()).get(accessCookie)?.value??"";
  const [storedId,token]=value.split(".");
  const id=typeof p.ref==="string"&&refPattern.test(p.ref)?p.ref:"";
+ const account=await getChatGPTUser();
  const user=id?requestIdentity(await headers()):null;
  const receiptToken=id&&id===storedId&&token?token:undefined;
  const tokenRow=receiptToken?await getApplication(id,receiptToken):null;
@@ -71,7 +73,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
    <div className="actions">{canContinue&&<a className="btn primary" href={checkoutUrl(billing?"payment":"billing",row.id)}>{billing?"Continue to payment":"Add billing address"}</a>}<a className="btn secondary" href={"/apply?ref="+row.id}>Refresh status</a><a className="btn secondary" href="/apply">Apply for another course</a></div>
  </div>:<>
  {id&&<p className="mutedbox">To open this application, check your <a className="textlink" href="/student?view=applications">Student Portal</a> or use <a className="textlink" href={"/application-status?ref="+id}>application recovery</a>.</p>}
- <ApplicationForm key={selectedSlug} courses={options} selected={selectedSlug} mode={mode}/>
+ <ApplicationForm key={selectedSlug} courses={options} selected={selectedSlug} mode={mode} profile={account?{name:account.displayName,email:account.email}:undefined}/>
  </>}
  </section></Frame>;
 }

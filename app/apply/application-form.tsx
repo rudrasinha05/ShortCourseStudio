@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {ProfileAvatar} from "../profile-avatar";
 import {useState} from "react";
 import {LearningPreferenceFields} from "@/app/learning-preference-fields";
 import {ArrowRight} from "lucide-react";
@@ -20,11 +21,12 @@ type CourseOption={
  fields?:{key:string;label:string;required:boolean}[];
 };
 
-export default function ApplicationForm({courses,selected,mode}:{courses:CourseOption[];selected:string;mode:"test"|"live"|null}){
+export default function ApplicationForm({courses,selected,mode,profile}:{profile?:{name:string;email:string};courses:CourseOption[];selected:string;mode:"test"|"live"|null}){
  const [slug,setSlug]=useState(selected||courses.find(c=>c.open)?.slug||"");
  const active=courses.find(c=>c.slug===slug);
  return <form className="panel formpanel" action={active?.open?"/forms/apply":undefined} method="post" aria-label="Course application">
   <div className="apply-form-intro"><span className="eyebrow">ADMISSIONS</span><h2>Course application</h2><p>Fields marked * are required.</p></div>
+  <div className="application-profile"><ProfileAvatar name={profile?.name??"Guest"} signedIn={!!profile}/><div><strong>{profile?.name??"Your profile"}</strong><p>{profile?profile.email:"Sign in to add a profile photo and track your applications."}</p><a className="textlink" href={profile?"/profile":"/login?return_to=%2Fapply"}>{profile?"Manage profile photo":"Sign in / Sign up"}</a></div></div>
   <label>Course *<select name="slug" required value={slug} onChange={e=>setSlug(e.target.value)}>
    <option value="">Choose a course</option>
    {courses.map(c=><option key={c.slug} value={c.slug}>{c.title}{c.status==="soon"?" — Batch announcement soon":c.status==="closed"?" — Closed":c.status==="paused"?" — Paused":""}</option>)}

@@ -58,6 +58,16 @@ export function chatGPTSignOutPath(returnTo = "/"): string {
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
+export function portalLoginPath(returnTo: string): string {
+  return `/login?return_to=${encodeURIComponent(portalReturnPath(returnTo))}`;
+}
+
+export function portalReturnPath(value: string): string {
+  const safe = safeRelativeReturnPath(value);
+  const pathname = new URL(safe, "https://app.local").pathname;
+  return ["/student", "/faculty", "/admin", "/staff", "/profile", "/apply"].includes(pathname) ? safe : "/student";
+}
+
 function safeRelativeReturnPath(value: string): string {
   if (!value.startsWith("/") || value.startsWith("//")) return "/";
 

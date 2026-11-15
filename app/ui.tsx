@@ -1,13 +1,14 @@
 import {getSiteContent} from "@/lib/admin-controls";
-import {chatGPTSignInPath,getChatGPTUser} from "./chatgpt-auth";
-import {ArrowRight,UserRound} from "lucide-react";
+import {portalLoginPath,getChatGPTUser} from "./chatgpt-auth";
+import {ProfileAvatar} from "./profile-avatar";
+import {UserRound} from "lucide-react";
 import {feeText} from "@/lib/courses";
 import {applicationsStatus} from "@/lib/enrollment";
 import {CAREER_DEPARTMENT,DEPARTMENT,DEPARTMENT_URL,INSTITUTE,POWERED_BY,SITE_NAME} from "@/lib/programme";
 export type PortalRole="Student"|"Faculty"|"Admin";
 type PortalHeader={role:PortalRole;path:string;signedIn?:boolean};
 export async function Header({portal,homeNavigation=false}:{portal?:PortalHeader;homeNavigation?:boolean}={}){
- const [content,homeUser]=await Promise.all([getSiteContent(),homeNavigation?getChatGPTUser():null]);
+ const [content,homeUser]=await Promise.all([getSiteContent(),getChatGPTUser()]);
  const login=homeNavigation?{role:"Student",path:"/student"}:portal&&!portal.signedIn?portal:undefined;
  return <header className="top">
   <div className="wrap nav">
@@ -15,8 +16,8 @@ export async function Header({portal,homeNavigation=false}:{portal?:PortalHeader
     <img className="brand-logo" src={content.studioLogo||"/favicon.svg"} alt="" width={40} height={40}/>
     <span><strong>{SITE_NAME}</strong><small>{content.tagline||"Five-day practical courses"}</small></span>
    </a>
-   <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/student" aria-current={portal?.role==="Student"?"page":undefined}>Student Portal</a>{!homeNavigation&&portal?.role!=="Student"&&<a href="/faculty" aria-current={portal?.role==="Faculty"?"page":undefined}>Faculty Portal</a>}<a href="/help">Help</a>{portal?.role==="Student"&&<a className="navbutton" href="/apply">Applications <ArrowRight size={15} aria-hidden="true"/></a>}
-    {login&&<a className="navbutton portal-auth-link" href={homeUser?login.path:chatGPTSignInPath(login.path)} target="_top"><UserRound size={16} aria-hidden="true"/> {homeUser?"Open Student Portal":login.role+" Login / Sign up"}</a>}
+   <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/help">Help</a>
+    {homeUser?<a className="profile-nav" href="/profile" aria-label="Open my profile" title="My profile"><ProfileAvatar name={homeUser.displayName}/></a>:<a className="navbutton portal-auth-link" href={portalLoginPath(login?.path??"/student")} target="_top"><UserRound size={16} aria-hidden="true"/> Sign in / Sign up</a>}
    </nav>
   </div>
   <div className="institution-strip"><div className="wrap institution-inner">

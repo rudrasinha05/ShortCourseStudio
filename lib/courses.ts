@@ -225,7 +225,7 @@ const crash:Course={
  days:cProgramming.map(c=>[c.title,c.outcome]),
 };
 export const REGULAR_TRACKS = TRACKS.filter(track=>track!=="C Programming");
-const regularCourses=[...core,...additional];
+const regularCourses=[...core,...additional].map(course=>course.track==="Computer Networks"?{...course,instructor:"Mohit Sharma"}:course);
 export const regularModules=(track:Track)=>regularCourses.filter(course=>course.track===track);
 const facultyCourses:Course[]=facultyTemplates.map((item)=>{
  const modules=regularModules(item.track);
