@@ -5,13 +5,15 @@ import {getUpcomingBanners} from "@/lib/course-banners";
 import {FeaturedBanner} from "./upcoming-banner";
 import {HomeCarousel} from "./home-carousel";
 import {Badge,Facts,Frame} from "./ui";
+import {HomepageSignOutReturn} from "./homepage-signout-return";
 import {canApply,enrollmentUnavailable,getCourses,getSiteControls,intakeStatus,publicCatalogue} from "@/lib/enrollment";
 import {REGULAR_TRACKS,TRACK_DETAILS,CRASH_SLUG,cDayNumber} from "@/lib/courses";
 import {CAREER_DEPARTMENT,CAREER_DEPARTMENT_ABOUT,CAREER_DEPARTMENT_URL,DEPARTMENT,DEPARTMENT_ABOUT,DEPARTMENT_URL,SITE_NAME} from "@/lib/programme";
 
 export const dynamic="force-dynamic";
-export default async function Home(){
- const [all,controls,content]=await Promise.all([getCourses(),getSiteControls(),getSiteContent()]);
+export default async function Home({searchParams}:{searchParams:Promise<{signed_out?:string|string[]}>}){
+ const [all,controls,content,params]=await Promise.all([getCourses(),getSiteControls(),getSiteContent(),searchParams]);
+ const signedOut=params?.signed_out==="1";
  const courses=publicCatalogue(all);
  const now=Date.now();
  const featured=await getUpcomingBanners(courses,now,true);
@@ -19,7 +21,8 @@ export default async function Home(){
  const cCourse=courses.find(c=>c.slug===CRASH_SLUG);
  const exclusive=courses.filter(c=>c.exclusive&&c.slug!==CRASH_SLUG);
 
- return <Frame homeNavigation>
+ return <Frame homeNavigation suppressStudentPopup={signedOut}>
+  {signedOut&&<HomepageSignOutReturn/>}
   {controls.announcement&&<p className="site-announcement"><span className="wrap">{controls.announcement}</span></p>}
   <section className="hero"><div className="wrap hero-stack">
    {slides.length?<HomeCarousel slides={slides.map((item,i)=>({id:item.slug,title:item.title,content:<FeaturedBanner item={item} heroTitle={i===0} now={now}/>}))}/>:<div className="homepage-intro">

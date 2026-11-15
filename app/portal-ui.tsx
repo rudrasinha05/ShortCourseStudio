@@ -4,7 +4,7 @@ import {chatGPTSignInPath,chatGPTSignOutPath} from "./chatgpt-auth";
 import {ArrowRight,KeyRound,LogOut} from "lucide-react";
 
 export function PortalAccount({email}:{email:string;path:string}){
- return <div className="portal-account"><span>Signed in as <strong>{email}</strong></span><a className="admin-site-link" href={chatGPTSignOutPath("/")} target="_top"><LogOut size={16} aria-hidden="true"/> Sign out</a></div>;
+ return <div className="portal-account"><span>Signed in as <strong>{email}</strong></span><a className="admin-site-link" href={chatGPTSignOutPath()} target="_top"><LogOut size={16} aria-hidden="true"/> Sign out</a></div>;
 }
 export function PortalFrame({role,heading,description,links,children,account,signInPath}:{role:string;heading:string;description:string;links?:[string,string][];children:ReactNode;account?:{email:string;path:string};signInPath?:string}){
  const portalRole:PortalRole|undefined=role==="Student"||role==="Faculty"||role==="Admin"?role:undefined;
@@ -29,7 +29,7 @@ export function PortalSignIn({role,path}:{role:string;path:string}){
   role==="Admin"?"Use the site owner’s ChatGPT account. Creating an account does not grant admin access.":
   "Your account is verified through ChatGPT. Access depends on your portal role.";
  return <PortalFrame role={role} heading={role+" Portal"} signInPath={path} description={roleInfo[role]??"Sign in to open your dashboard."}>
-  <section className="panel formpanel portal-auth-panel"><div className="admin-icon"><KeyRound size={20} aria-hidden="true"/></div><h2>{student?"Sign in / Sign up":<>Sign in to the {role} Portal</>}</h2><p>{description}</p>
+  <section id="portal-sign-in" className="panel formpanel portal-auth-panel"><div className="admin-icon"><KeyRound size={20} aria-hidden="true"/></div><h2>{student?"Sign in / Sign up":<>Sign in to the {role} Portal</>}</h2><p>{description}</p>
    <a className="btn primary" href={chatGPTSignInPath(path)} target="_top">Continue with ChatGPT <ArrowRight size={16} aria-hidden="true"/></a><a className="textlink" href="/help#sign-in">Need help signing in?</a>
   </section>
  </PortalFrame>;

@@ -28,11 +28,11 @@ try{
  const activeHeader=header(await html("/student",student));
  assert.doesNotMatch(activeHeader,/Sign in \/ Sign up|Faculty Portal/);
  assert.match(activeHeader,/href="\/profile"/);
- assert.match(header(await html("/faculty")),/href="\/login\?return_to=%2Ffaculty"/);
+ assert.match(header(await html("/faculty")),/href="#portal-sign-in"/);
  const homepage=await html("/"),homepageHeader=header(homepage);
  assert.doesNotMatch(homepageHeader,/href="\/faculty"/);
  assert.match(homepage.split("<footer")[1]??"",/href="\/faculty"/);
- assert.match(homepageHeader,/Sign in \/ Sign up/);
+ assert.match(homepageHeader,/Student sign in \/ Sign up/);
  assert.match(homepageHeader,/href="\/login\?return_to=%2Fstudent" target="_top"/);
  assert.doesNotMatch(homepageHeader,/href="\/apply"|return_to=%2Fadmin|return_to=%2Ffaculty/);
  for(const path of ["/faculty","/admin","/apply","/help"]){
@@ -42,12 +42,14 @@ try{
  assert.match(header(await html("/",admin)),/href="\/profile"/);
  assert.doesNotMatch(header(await html("/",admin)),/signin-with-chatgpt/);
  const facultySignIn=await html("/faculty?view=proposals");
- assert.match(header(facultySignIn),/Sign in \/ Sign up/);
- assert.match(header(facultySignIn),/href="\/login\?return_to=%2Ffaculty%3Fview%3Dproposals" target="_top"/);
+ assert.match(header(facultySignIn),/Faculty sign in/);
+ assert.match(header(facultySignIn),/href="#portal-sign-in"/);
+ assert.match(facultySignIn,/href="\/signin-with-chatgpt\?return_to=%2Ffaculty%3Fview%3Dproposals" target="_top"/);
  assert.doesNotMatch(header(facultySignIn),/return_to=%2Fstudent|return_to=%2Fadmin/);
  const adminSignIn=await html("/admin");
- assert.match(header(adminSignIn),/Sign in \/ Sign up/);
- assert.match(header(adminSignIn),/href="\/login\?return_to=%2Fadmin" target="_top"/);
+ assert.match(header(adminSignIn),/Admin sign in/);
+ assert.match(header(adminSignIn),/href="#portal-sign-in"/);
+ assert.match(adminSignIn,/href="\/signin-with-chatgpt\?return_to=%2Fadmin" target="_top"/);
  assert.match(adminSignIn,/Creating an account does not grant admin access/);
  assert.doesNotMatch(header(adminSignIn),/return_to=%2Fstudent|return_to=%2Ffaculty/);
  assert.doesNotMatch(header(await html("/admin",admin)),/Sign in \/ Sign up/);

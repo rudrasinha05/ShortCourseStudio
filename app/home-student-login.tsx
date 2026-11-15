@@ -5,7 +5,7 @@ import {ArrowRight,GraduationCap,UserRound,X} from "lucide-react";
 
 const seenKey="scs:student-login-shown";
 
-export function HomeStudentLogin({loginPath,signInPath}:{loginPath:string;signInPath:string}){
+export function HomeStudentLogin({loginPath,signInPath,autoOpen}:{loginPath:string;signInPath:string;autoOpen:boolean}){
  const dialog=useRef<HTMLDialogElement>(null);
  const trigger=useRef<HTMLAnchorElement>(null);
  const close=useRef<HTMLButtonElement>(null);
@@ -18,15 +18,19 @@ export function HomeStudentLogin({loginPath,signInPath}:{loginPath:string;signIn
   return true;
  }
  useEffect(()=>{
+  if(!autoOpen){
+   try{sessionStorage.setItem(seenKey,"1")}catch{/* Storage is optional. */}
+   return;
+  }
   try{if(sessionStorage.getItem(seenKey))return}catch{/* Allow opening without storage. */}
   open();
- },[]);
+ },[autoOpen]);
  return <>
   <a ref={trigger} className="navbutton portal-auth-link" href={loginPath} target="_top"
    aria-haspopup="dialog" onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&open())e.preventDefault()}}>
-   <UserRound size={16} aria-hidden="true"/> Sign in / Sign up
+   <UserRound size={16} aria-hidden="true"/> Student sign in / Sign up
   </a>
-  <dialog ref={dialog} id="home-student-login" className="student-login-dialog" aria-labelledby="home-student-login-title"
+  <dialog ref={dialog} id="home-student-login" className="student-login-dialog" data-auto-open={autoOpen} aria-labelledby="home-student-login-title"
    aria-describedby="home-student-login-description" onClose={()=>trigger.current?.focus()}>
    <div className="student-login-inner">
     <button ref={close} className="student-login-close" type="button" aria-label="Close student login" onClick={()=>dialog.current?.close()}><X size={21} aria-hidden="true"/></button>

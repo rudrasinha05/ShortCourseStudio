@@ -8,9 +8,10 @@ import {applicationsStatus} from "@/lib/enrollment";
 import {CAREER_DEPARTMENT,DEPARTMENT,DEPARTMENT_URL,INSTITUTE,POWERED_BY,SITE_NAME} from "@/lib/programme";
 export type PortalRole="Student"|"Faculty"|"Admin";
 type PortalHeader={role:PortalRole;path:string;signedIn?:boolean};
-export async function Header({portal,homeNavigation=false}:{portal?:PortalHeader;homeNavigation?:boolean}={}){
+export async function Header({portal,homeNavigation=false,suppressStudentPopup=false}:{portal?:PortalHeader;homeNavigation?:boolean;suppressStudentPopup?:boolean}={}){
  const [content,homeUser]=await Promise.all([getSiteContent(),getChatGPTUser()]);
  const login=homeNavigation?{role:"Student",path:"/student"}:portal&&!portal.signedIn?portal:undefined;
+ const privatePortal=login?.role==="Faculty"||login?.role==="Admin";
  return <header className="top">
   <div className="wrap nav">
    <a className="brand" href="/">
@@ -18,7 +19,7 @@ export async function Header({portal,homeNavigation=false}:{portal?:PortalHeader
     <span><strong>{SITE_NAME}</strong><small>{content.tagline||"Five-day practical courses"}</small></span>
    </a>
    <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/help">Help</a>
-    {homeUser?<a className="profile-nav" href="/profile" aria-label="Open my profile" title="My profile"><ProfileAvatar name={homeUser.displayName}/></a>:homeNavigation?<HomeStudentLogin loginPath={portalLoginPath("/student")} signInPath={chatGPTSignInPath("/student")}/>:<a className="navbutton portal-auth-link" href={portalLoginPath(login?.path??"/student")} target="_top"><UserRound size={16} aria-hidden="true"/> Sign in / Sign up</a>}
+    {homeUser?<a className="profile-nav" href="/profile" aria-label="Open my profile" title="My profile"><ProfileAvatar name={homeUser.displayName}/></a>:homeNavigation?<HomeStudentLogin autoOpen={!suppressStudentPopup} loginPath={portalLoginPath("/student")} signInPath={chatGPTSignInPath("/student")}/>:<a className="navbutton portal-auth-link" href={privatePortal?"#portal-sign-in":portalLoginPath(login?.path??"/student")} target={privatePortal?undefined:"_top"}><UserRound size={16} aria-hidden="true"/>{privatePortal?" "+login?.role+" sign in":" Sign in / Sign up"}</a>}
    </nav>
   </div>
   <div className="institution-strip"><div className="wrap institution-inner">
@@ -43,6 +44,6 @@ export async function Footer(){
   <small className="footer-status">Independently organised · Private review draft</small>
  </div></footer>;
 }
-export function Frame({children,portalHeader,homeNavigation}:{children:React.ReactNode;portalHeader?:PortalHeader;homeNavigation?:boolean}){return <><a href="#main" className="skip">Skip to content</a><Header portal={portalHeader} homeNavigation={homeNavigation}/><main id="main">{children}</main><Footer/></>}
+export function Frame({children,portalHeader,homeNavigation,suppressStudentPopup}:{children:React.ReactNode;portalHeader?:PortalHeader;homeNavigation?:boolean;suppressStudentPopup?:boolean}){return <><a href="#main" className="skip">Skip to content</a><Header portal={portalHeader} homeNavigation={homeNavigation} suppressStudentPopup={suppressStudentPopup}/><main id="main">{children}</main><Footer/></>}
 export function Badge({status}:{status:string}){return <span className={"badge "+status}><i/>{applicationsStatus(status)}</span>}
 export function Facts({fee=feeText}:{fee?:string}={}){return <dl className="facts"><div><dt>Duration</dt><dd>5 days</dd></div><div><dt>Daily schedule</dt><dd>3 hours/day</dd></div><div><dt>Fee per course</dt><dd>{fee}</dd></div></dl>}

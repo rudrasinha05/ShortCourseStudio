@@ -53,9 +53,8 @@ export function chatGPTSignInPath(returnTo: string): string {
   return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
-export function chatGPTSignOutPath(returnTo = "/"): string {
-  const safeReturnTo = safeRelativeReturnPath(returnTo);
-  return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
+export function chatGPTSignOutPath(): string {
+  return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent("/?signed_out=1")}`;
 }
 
 export function portalLoginPath(returnTo: string): string {
