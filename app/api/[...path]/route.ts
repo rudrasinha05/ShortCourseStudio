@@ -8,6 +8,8 @@ import { createApplication,saveCourse } from "@/lib/form-workflows";
 export const dynamic = "force-dynamic";
 const ref=z.object({id:z.string().max(30),token:z.string().max(80).optional()});
 const orderPattern=/^order_[A-Za-z0-9]{5,40}$/,paymentPattern=/^pay_[A-Za-z0-9]{5,40}$/;
+// Shape of a Razorpay webhook body. Every field is checked at runtime before use.
+type PaymentWebhook={event?:unknown;payload?:{payment?:{entity?:{status?:unknown;currency?:unknown;id:string;order_id?:unknown;amount:number}}}};
 type OrderPayments={items?:{id:string;order_id:string;amount:number;currency:string;status:string}[]};
 const verify=ref.extend({razorpay_order_id:z.string().regex(orderPattern),razorpay_payment_id:z.string().regex(paymentPattern),razorpay_signature:z.string().regex(/^[a-f0-9]{64}$/)});
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
@@ -37,14 +39,15 @@ export async function POST(req:Request){
  const webhook=path==="/api/payments/webhook";
  if(!webhook && req.headers.get("origin") && req.headers.get("origin")!==url.origin && req.headers.get("sec-fetch-site")!=="same-origin")return fail("Invalid request origin.",403);
  if(!req.headers.get("content-type")?.toLowerCase().includes("application/json"))return fail("Expected JSON.",415);
- let raw:string,data:any;
+ let raw:string,data:unknown;
  try{raw=await rawBody(req);data=JSON.parse(raw);}catch{return fail("Invalid or oversized request.",400);}
  try{
  if(webhook){
    const mode=paymentMode(),provided=req.headers.get("x-razorpay-signature")||"";
    if(!mode||!cfg.RAZORPAY_WEBHOOK_SECRET||!secureEqual(await signature(cfg.RAZORPAY_WEBHOOK_SECRET,raw),provided))return fail("Invalid webhook signature.",401);
-   if(data?.event!=="payment.captured")return reply({received:true});
-   const p=data?.payload?.payment?.entity;
+   const event=data as PaymentWebhook|null;
+   if(event?.event!=="payment.captured")return reply({received:true});
+   const p=event?.payload?.payment?.entity;
    if(p?.status!=="captured"||p?.currency!=="INR"||!paymentPattern.test(p?.id||"")||typeof p?.order_id!=="string"||!orderPattern.test(p.order_id)||!Number.isSafeInteger(p?.amount)||p.amount<=0)return fail("Invalid payment.",400);
    const row=await db().prepare("SELECT * FROM applications WHERE order_id = ?").bind(p.order_id).first<Application>();
    if(row&&row.amount===p.amount&&row.payment_order_mode===mode&&!await markPaid(row,p.id))return fail("Payment needs reconciliation.",409);
@@ -52,8 +55,9 @@ export async function POST(req:Request){
  }
  if(path==="/api/admin/course"){
    if(!await authorizedAdmin(req))return fail("Admin access denied.",401);
-   const error=await saveCourse(typeof data?.slug==="string"?data.slug:"",data);
-   if(!error)await audit(actorFor(req),"edit course",data.slug);
+   const slug=data&&typeof data==="object"&&"slug" in data&&typeof data.slug==="string"?data.slug:"";
+   const error=await saveCourse(slug,data);
+   if(!error)await audit(actorFor(req),"edit course",slug);
    return error?fail(error==="schedule"?"Add a schedule and delivery mode before opening applications.":error==="instructor"?"Assign one instructor before opening this exclusive batch.":error==="parent-course"?"Open applications on the full C course, not on a day plan.":"Check the five day entries and batch fields.",400):reply({ok:true});
  }
  if(path==="/api/applications"){

@@ -15,6 +15,8 @@ export default async function Home({searchParams}:{searchParams:Promise<{signed_
  const [all,controls,content,params]=await Promise.all([getCourses(),getSiteControls(),getSiteContent(),searchParams]);
  const signedOut=params?.signed_out==="1";
  const courses=publicCatalogue(all);
+ // Server component rendered per request (force-dynamic), so reading the clock here is safe.
+ // eslint-disable-next-line react-hooks/purity
  const now=Date.now();
  const featured=await getUpcomingBanners(courses,now,true);
  const slides=featured.slice(0,5);
