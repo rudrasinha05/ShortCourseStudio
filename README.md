@@ -1,6 +1,6 @@
 # Short Course Studio
 
-A short-course catalogue and enrollment site with 25 courses, application tracking, an admin dashboard, and optional Razorpay checkout. Built with Vinext and Cloudflare D1.
+A short-course catalogue and enrollment site with Regular and Exclusive courses, student wishlists, role-based portals, application tracking, and optional Razorpay checkout. Built with Vinext and Cloudflare D1.
 
 This repository is a source snapshot of the deployed site. Runtime credentials and student data are not included. The hosting manifest retains the binding configuration but omits the original Site's project ID. Link your own Site before publishing from a new environment.
 

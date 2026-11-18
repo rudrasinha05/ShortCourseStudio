@@ -3,7 +3,6 @@ export const SITE_NAME = "Short Course Studio";
 export const POWERED_BY = "Powered by GL Bajaj";
 export const INSTITUTE = "GL Bajaj Institute of Technology & Management";
 export const DEPARTMENT = "Department of Computer Science and Engineering (Artificial Intelligence)";
-export const CAREER_DEPARTMENT = "Career Development Center";
 export const DEPARTMENT_URL = "https://www.glbitm.org/cse-artificial-intelligence/";
 export const DEPARTMENT_ABOUT = "The department combines core computer science with artificial intelligence. This proposed short-term training series pairs classroom concepts with guided labs and a final project.";
 export const pythonDetails = {

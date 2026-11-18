@@ -1,3 +1,4 @@
+import {scopedFetch} from "./helpers/scoped-fetch.mjs";
 import { Miniflare } from "miniflare";
 import assert from "node:assert/strict";
 import { readFile,readdir } from "node:fs/promises";
@@ -9,27 +10,47 @@ try{
  for(const f of (await readdir("drizzle")).filter(x=>x.endsWith(".sql")).sort()){
    for(const s of (await readFile("drizzle/"+f,"utf8")).split("--> statement-breakpoint"))if(s.trim())await db.prepare(s.trim()).run();
  }
- const req=(path,body,headers={})=>mf.dispatchFetch("https://site.test"+path,{method:body?"POST":"GET",headers:{...(body?{"Content-Type":"application/x-www-form-urlencoded","Origin":"https://site.test"}:{}),...headers},body:body?new URLSearchParams(body).toString():undefined,redirect:"manual"});
+ const student={"oai-authenticated-user-id":"workflow-student","oai-authenticated-user-email":"workflow-student@example.invalid"};
+ const req=(path,body,headers=path==="/forms/apply"||path.startsWith("/apply?course=")?student:{})=>scopedFetch(mf,"https://site.test"+path,{method:body?"POST":"GET",headers:{...(body?{"Content-Type":"application/x-www-form-urlencoded","Origin":"https://site.test"}:{}),...headers},body:body?new URLSearchParams(body).toString():undefined,redirect:"manual"});
  const admin={"oai-authenticated-user-id":"test-owner","oai-authenticated-user-email":"owner@example.invalid"};
  assert.equal((await req("/api/admin")).status,401);
  const launchTime="2026-11-26T20:00+05:30";
  const afterLaunch=Date.now()>=Date.parse(launchTime);
  if(afterLaunch){
-  assert.doesNotMatch(await(await req("/")).text(),/<h1 class="poster-title"><span class="poster-letter">C<\/span>.*?Horesh Sir.*?<\/h1>/s);
+  assert.doesNotMatch(await(await req("/")).text(),/<h2 class="poster-title"><span class="poster-letter">C<\/span>(?:<!-- -->)? <span class="poster-name">Programming<\/span><\/h2>/s);
   const future=new Date(Date.now()+3*86400000+19800000).toISOString().slice(0,16);
   await db.prepare("INSERT INTO course_banners (slug,batch,faculty,qualification,profile,photo,starts_at,timing,visible) VALUES (?,?,?,?,?,?,?,?,?)").bind("c-by-horesh-sir","launch","Horesh Sir","M.Tech from NSUT, Delhi","DSA Tech Trainer at GL Bajaj","",""+future,"",1).run();
  }
  const catalog=await(await req("/")).text();
+ assert.match(catalog,/<meta(?=[^>]*name="viewport")(?=[^>]*content="width=device-width,\s*initial-scale=1")[^>]*>/);
  const state=await(await req("/api/admin",null,admin)).json();
  assert.equal(state.courses.length,36);
- assert.match(catalog,/<h1 class="poster-title"><span class="poster-letter">C<\/span>.*?Horesh Sir.*?<\/h1>/s);
+ assert.match(catalog,/<h2 class="poster-title"><span class="poster-letter">C<\/span>(?:<!-- -->)? <span class="poster-name">Programming<\/span><\/h2>/s);
+ assert.match(catalog,/<h1 id="placement-heading">Get placement-ready, one short course at a time\.<\/h1>/);
+ assert.match(catalog,/Explore short-term courses/);
+ const posterAt=catalog.indexOf('class="home-carousel"');
+ const preparationAt=catalog.indexOf('class="placement-intro"');
+ const glanceAt=catalog.indexOf('class="programme-glance"');
+ assert.ok(posterAt>=0&&posterAt<preparationAt&&preparationAt<glanceAt,"Placement preparation is between the poster and At a Glance.");
  assert.match(catalog,/M.Tech from NSUT, Delhi/);
  assert.match(catalog,/DSA Tech Trainer at GL Bajaj/);
  if(!afterLaunch)assert.ok(catalog.includes('datetime="'+launchTime+'"')||catalog.includes('dateTime="'+launchTime+'"'));
  assert.match(catalog,/Certificate included/);
  const crashBanner=catalog.match(/<article class="upcoming-banner featured crash-banner">.*?<\/article>/s)?.[0]??"";
  assert.match(crashBanner,/Exclusive Short-Term Course/);
- assert.match(crashBanner,/C Programming/);
+ assert.doesNotMatch(crashBanner,/wishlist-button|data-course-wishlist/);
+ assert.doesNotMatch(catalog,/wishlist-on-poster/);
+ const filter=catalog.match(/<fieldset class="course-format-filter">[\s\S]*?<\/fieldset>/)?.[0]??"";
+ assert.match(filter,/<legend>Course format<\/legend>/);
+ assert.match(filter,/<input(?=[^>]*type="radio")(?=[^>]*value="all")(?=[^>]*checked)[^>]*>/);
+ assert.match(filter,/value="regular"/);
+ assert.match(filter,/value="exclusive"/);
+ for(const kind of ["regular","exclusive"]){
+  const container=catalog.match(new RegExp('<div[^>]*data-course-format-result="'+kind+'"[^>]*>'))?.[0]??"";
+  assert.ok(container);
+  assert.doesNotMatch(container,/hidden/);
+ }
+ assert.match(crashBanner,/<h2 class="poster-title"><span class="poster-letter">C<\/span>(?:<!-- -->)? <span class="poster-name">Programming<\/span><\/h2>/);
  assert.match(crashBanner,/pointers, memory and data structures/);
  assert.match(crashBanner,/<strong>700\+ Students<\/strong>/);
  assert.match(crashBanner,/Landed jobs with Horesh Sir’s guidance/);
@@ -63,7 +84,14 @@ try{
  }
  assert.equal((await req("/faculty-courses/not-a-template")).status,404);
  const featured=catalog.indexOf('class="upcoming-banner featured crash-banner"');
- assert.ok(featured>=0&&featured<catalog.indexOf('class="format"'));
+ assert.ok(featured>=0&&featured<catalog.indexOf('class="programme-glance"'));
+ assert.doesNotMatch(catalog,/One faculty member teaches the five modules/);
+ const retiredDepartment=/Career Development Cent(?:er|re)|cdc-overview/i;
+ assert.doesNotMatch(catalog,retiredDepartment);
+ const aboutPage=await(await req("/about")).text();
+ assert.doesNotMatch(aboutPage,retiredDepartment);
+ assert.match(aboutPage,/Organising department/);
+ assert.match(aboutPage,/cse-artificial-intelligence/);
  const coursesForBanners=state.courses.slice(0,2);
  const istAfter=(days)=>new Date(Date.now()+days*86400000+19800000).toISOString().slice(0,16);
  const updateBanner=(slug,batch,opts={})=>req("/forms/admin/banner",{slug,batch,visible:"yes",...opts},admin);
@@ -76,29 +104,46 @@ try{
   assert.match((await updateBanner(item.slug,item.batch,{startsAt:istAfter(i===0?1:-1),timing:"Test batch timing"})).headers.get("Location"),/message=banner-saved/);
  }
  const ranked=await(await req("/")).text();
- assert.ok(ranked.includes("<h1>"+coursesForBanners[0].title+"</h1>"));
- assert.match(ranked,/More upcoming courses/);
+ assert.ok(ranked.includes("<h2>"+coursesForBanners[0].title+"</h2>"));
+ assert.match(ranked,/aria-roledescription="carousel"/);
+ assert.equal((ranked.match(/aria-roledescription="slide"/g)||[]).length,5);
  assert.match(ranked,/images.example.invalid\/faculty.jpg/);
- assert.equal((ranked.match(/<article class="upcoming-banner secondary-banner crash-banner">/g)||[]).length,1);
+ assert.equal((ranked.match(/<article class="upcoming-banner featured crash-banner">/g)||[]).length,1);
  assert.match((await updateBanner("c-by-horesh-sir","launch",{visible:"no"})).headers.get("Location"),/message=banner-saved/);
- assert.doesNotMatch(await(await req("/")).text(),/<h1 class="poster-title"><span class="poster-letter">C<\/span>.*?Horesh Sir.*?<\/h1>/s);
+ assert.doesNotMatch(await(await req("/")).text(),/<h2 class="poster-title"><span class="poster-letter">C<\/span>(?:<!-- -->)? <span class="poster-name">Programming<\/span><\/h2>/s);
  assert.match(catalog,/class="institution-mark" aria-label="Powered by GL Bajaj"/);
  const header=catalog.match(/<header class="top">.*?<\/header>/s)?.[0]??"";
  assert.match(header,/<a class="brand" href="\/"><img class="brand-logo" src="\/favicon.svg"[^>]*><span><strong>Short Course Studio/);
  assert.match(header,/<div class="institution-mark"[^>]*><img class="institution-logo" src="\/gl-bajaj-crest.png"[^>]*><div><span>Powered by<\/span><strong>GL Bajaj/);
+ for(const [href,title] of [["/about","About us"],["/faq","FAQ"],["/help","Help &amp; support"]]){
+  assert.ok(catalog.includes('<a href="'+href+'">'+title+'</a>'));
+  assert.equal((await req(href)).status,200);
+ }
+ assert.match(catalog,/Next featured course/);
  assert.doesNotMatch(catalog,/founders-heading|class="wrap founders"/i);
  assert.equal((catalog.match(/aria-label="Course summary"/g)||[]).length,30);
  assert.equal((catalog.match(/<li>5 days<\/li><li>₹2,500<\/li>/g)||[]).length,25);
- assert.match(catalog,/<li>Department of Computer Science and Engineering \(Artificial Intelligence\)<\/li><li>Career Development Center<\/li>/);
+ assert.match(catalog,/<li>Department of Computer Science and Engineering \(Artificial Intelligence\)<\/li><\/ul>/);
  assert.match(catalog,/GL Bajaj Institute of Technology/);
  for(const track of ["Data Analytics","Database Management Systems","Computer Networks","Computer Organisation & Architecture","Theory of Computation","C Programming"]){
   assert.equal(state.courses.filter(c=>c.track===track&&(!c.exclusive||track==="C Programming")).length,track==="C Programming"?6:5);
  }
- assert.equal((catalog.match(/class="course" href="\/courses\//g)||[]).length,30);
+ assert.equal((catalog.match(/<article class="course wishlist-course-card"[^>]*>/g)||[]).length,35);
  const subjectNav=catalog.match(/<nav class="subject-nav" aria-label="Jump to regular subject">(.*?)<\/nav>/s)?.[1]??"";
  const expectedOrder=["data-analytics","dbms","networks","coa","toc"];
  assert.deepEqual([...subjectNav.matchAll(/href="#([^"]+)"/g)].map(([,id])=>id),expectedOrder);
- assert.deepEqual([...catalog.matchAll(/<section class="track" id="([^"]+)"/g)].map(([,id])=>id),[...expectedOrder,"exclusive-subjects"]);
+ assert.match(catalog,/Pick a subject below, then explore focused five-day courses/);
+ assert.doesNotMatch(catalog,/Each subject has five separate course cards/);
+ const exclusiveNav=catalog.match(/<nav class="subject-nav" aria-label="Jump to exclusive subject">(.*?)<\/nav>/s)?.[1]??"";
+ const exclusiveAnchors=[...exclusiveNav.matchAll(/href="#([^"]+)"/g)].map(([,id])=>id);
+ assert.deepEqual(exclusiveAnchors,["c-programming","exclusive-data-analytics","exclusive-dbms"]);
+ for(const id of exclusiveAnchors)assert.equal(catalog.split('id="'+id+'"').length,2);
+ assert.match(catalog,/<article[^>]+id="exclusive-data-analytics"[^>]*>[\s\S]*?<h4>Data Analytics by Anant Verma<\/h4>/);
+
+ assert.deepEqual([...catalog.matchAll(/<section class="track" id="([^"]+)"/g)].map(([,id])=>id),expectedOrder);
+ assert.doesNotMatch(catalog,/Faculty-led intensives|Each listing is a complete course with a five-session plan/);
+ const exclusiveCards=catalog.match(/<div class="grid exclusive-course-grid" id="exclusive-subjects">([\s\S]*?)<\/div><\/section>/)?.[1]??"";
+ assert.equal((exclusiveCards.match(/<article class="course wishlist-course-card"[^>]*>/g)||[]).length,5);
  const cSection=catalog.match(/<section class="track exclusive-c-track" id="c-programming">(.*?)<\/section>/s)?.[1]??"";
  assert.deepEqual([...cSection.matchAll(/class="course-code">Day (?:<!-- -->)?([1-5])</g)].map(([,day])=>day),["1","2","3","4","5"]);
  assert.match(cSection,/₹2,500(?:<!-- -->)? (?:<!-- -->)?for all five days/);
@@ -141,7 +186,7 @@ try{
  }
  assert.equal((await req("/courses/does-not-exist")).status,404);
  const freeForm={slug:"c-programming-foundations",name:"C Test Applicant",email:"c-pilot@example.invalid",college:"Example College",consent:"yes"};
- const jsonPost=(path,body,headers={})=>mf.dispatchFetch("https://site.test"+path,{method:"POST",headers:{"Content-Type":"application/json",...headers},body:JSON.stringify(body)});
+ const jsonPost=(path,body,headers=path==="/api/applications"?student:{})=>scopedFetch(mf,"https://site.test"+path,{method:"POST",headers:{"Content-Type":"application/json",...headers},body:JSON.stringify(body)});
  const blocked=await req("/forms/apply",freeForm);
  assert.match(blocked.headers.get("Location"),/error=not-open/);
  assert.equal(blocked.headers.get("Set-Cookie"),null);
@@ -153,7 +198,7 @@ try{
  assert.match((await req("/forms/admin/course",editFor(cDay),admin)).headers.get("Location"),/message=parent-course/);
  assert.match((await req("/forms/admin/course",editFor(cParent),admin)).headers.get("Location"),/message=saved/);
  const openC=await(await req("/apply?course="+freeForm.slug)).text();
- assert.match(openC,/name="slug" value="c-by-horesh-sir"/);
+ assert.match(openC,/<option(?=[^>]*value="c-by-horesh-sir")(?=[^>]*selected)[^>]*>/);
  assert.match(openC,/name="batch" value="batch-1"/);
  const freeResult=await req("/forms/apply",freeForm);
  assert.equal(freeResult.status,303);
@@ -161,12 +206,12 @@ try{
  const [freeId,freeCode]=freeCookie.split("=")[1].split(".");
  const freeRow=await db.prepare("SELECT amount, slug FROM applications WHERE id=?").bind(freeId).first();
  assert.deepEqual(freeRow,{amount:250000,slug:"c-by-horesh-sir"});
- const freeReceipt=await(await req(freePath,null,{Cookie:freeCookie})).text();
+ const freeReceipt=await(await req(freePath.replace("/apply/billing?","/apply?"),null,{Cookie:freeCookie})).text();
  assert.match(freeReceipt,/Application received/);
  assert.match(freeReceipt,/Not paid/);
  assert.doesNotMatch(freeReceipt,/Enrollment confirmed|Pay course fee/);
  assert.match((await req("/forms/apply",{...freeForm,slug:"c-arrays-and-strings"})).headers.get("Location"),/error=duplicate/);
- const paymentReq=(path)=>mf.dispatchFetch("https://site.test"+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:freeId,token:freeCode})});
+ const paymentReq=(path)=>scopedFetch(mf,"https://site.test"+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:freeId,token:freeCode})});
  assert.equal((await paymentReq("/api/payments/order")).status,503);
  assert.equal((await(await paymentReq("/api/applications/status")).json()).paymentState,"unpaid");
  const c=state.courses[0],form={slug:c.slug,name:"Synthetic Applicant",email:"sample@example.invalid",college:"Example College",consent:"yes"};
@@ -192,7 +237,9 @@ try{
  assert.match((await req("/forms/apply",{...form,consent:""})).headers.get("Location"),/error=invalid/);
  const result=await req("/forms/apply",form);
  assert.equal(result.status,303);
- const path=result.headers.get("Location"),set=result.headers.get("Set-Cookie");
+ const billingPath=result.headers.get("Location"),set=result.headers.get("Set-Cookie");
+ assert.match(billingPath,/^\/apply\/billing\?ref=/);
+ const path=billingPath.replace("/apply/billing?","/apply?");
  assert.match(set,/HttpOnly/);assert.match(set,/; Secure/);
  const cookie=set.split(";")[0], [id,code]=cookie.split("=")[1].split(".");
  assert.match(path,new RegExp(id));assert.ok(!path.includes(code));
@@ -216,7 +263,7 @@ try{
  assert.ok(!(await(await req(path,null,{Cookie:cookie})).text()).includes(video));
  assert.equal((await req("/forms/admin/review",change)).status,403);
  assert.doesNotMatch(await(await req("/admin")).text(),/Synthetic Applicant/);
- assert.match(await(await req("/admin",null,admin)).text(),/Synthetic Applicant/);
+ assert.match(await(await req("/admin?section=students",null,admin)).text(),/Synthetic Applicant/);
  assert.match((await req("/forms/admin/review",change,admin)).headers.get("Location"),/message=reviewed/);
  const checked=await(await req(path,null,{Cookie:cookie})).text();
  assert.match(checked,/Accepted/);assert.match(checked,/Not paid/);assert.doesNotMatch(checked,/Pay course fee/);

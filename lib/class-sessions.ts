@@ -34,7 +34,7 @@ export async function setClassAccess(id:string,grant:string){
  const result=await db().prepare("UPDATE applications SET class_access=? WHERE id=? AND (?=0 OR (review_state='accepted' AND (slug<>? OR payment_state='paid')))").bind(value,id,value,CRASH_SLUG).run();
  return result.meta.changes===1;
 }
-export const hasClassAccess=(row:Application)=>row.review_state==="accepted"&&row.class_access===1&&(row.slug!==CRASH_SLUG||row.payment_state==="paid");
+export const hasClassAccess=(row:Pick<Application,"review_state"|"class_access"|"slug"|"payment_state">)=>row.review_state==="accepted"&&row.class_access===1&&(row.slug!==CRASH_SLUG||row.payment_state==="paid");
 export function formatClassTime(s:string){
  return new Intl.DateTimeFormat("en-IN",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Kolkata"}).format(new Date(s+"+05:30"));
 }

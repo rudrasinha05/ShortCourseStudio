@@ -1,0 +1,1 @@
+ALTER TABLE `applications` ADD `submitted_by_user_id` text;

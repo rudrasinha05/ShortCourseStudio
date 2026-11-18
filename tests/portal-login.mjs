@@ -1,0 +1,115 @@
+import {Miniflare} from "miniflare";
+import {readFile,readdir} from "node:fs/promises";
+import assert from "node:assert/strict";
+import {activatePortal} from "./helpers/scoped-fetch.mjs";
+const origin="https://site.test",root="dist/server";
+const modules=["index.js",...(await readdir(root,{recursive:true})).filter(p=>/\.m?js$/.test(p)&&p!=="index.js")].map(p=>({type:"ESModule",path:root+"/"+p}));
+const mf=new Miniflare({modulesRoot:root,modules,compatibilityDate:"2026-05-15",compatibilityFlags:["nodejs_compat"],d1Databases:["DB"],r2Buckets:["BUCKET"],bindings:{SITE_ADMIN_EMAIL:"owner@example.invalid"}});
+const owner={"oai-authenticated-user-id":"test-owner","oai-authenticated-user-email":"owner@example.invalid"};
+const student={"oai-authenticated-user-id":"test-student","oai-authenticated-user-email":"student@example.invalid"};
+const req=(path,h={},cookie="",init={})=>mf.dispatchFetch(origin+path,{redirect:"manual",...init,headers:{...h,...(cookie?{cookie}:{}),...init.headers}});
+const html=async(...a)=>(await(await req(...a)).text()).replace(/<!--.*?-->/g,"");
+const adminNav=/aria-label="Admin sections"/,studentNav=/aria-label="Student sections"/,facultyNav=/aria-label="Faculty sections"/;
+const activate=async(target,actor=owner,previous="")=>{
+ const r=await activatePortal(mf,{...actor,...(previous?{cookie:previous}:{})},target);
+ assert.equal(r.response.status,303);
+ assert.equal(r.response.headers.get("location"),target);
+ assert.match(r.response.headers.getSetCookie()[0],/Secure; HttpOnly; SameSite=Lax/);
+ assert.ok(r.cookie);
+ return r.cookie;
+};
+const form=(data,originHeader=origin)=>({method:"POST",headers:{origin:originHeader,"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams(data)});
+try{
+ const db=await mf.getD1Database("DB");
+ for(const file of (await readdir("drizzle")).filter(x=>x.endsWith(".sql")).sort())
+  for(const stmt of (await readFile("drizzle/"+file,"utf8")).split("--> statement-breakpoint"))if(stmt.trim())await db.prepare(stmt.trim()).run();
+ for(const [path,next] of [["/faculty","/faculty/login"],["/admin","/admin/login"]]){
+  const response=await req("/login?return_to="+encodeURIComponent(path));
+  assert.equal(response.status,307);
+  assert.equal(response.headers.get("location"),next);
+ }
+ assert.match(await html("/login?return_to=%2Fstudent"),/action="\/student\/auth\/signin"/);
+ assert.match(await html("/login?return_to=%2Fstaff"),/action="\/student\/auth\/staff"/);
+ for(const target of ["https://other.invalid","//other.invalid","/login","/callback","/signout-with-chatgpt","/faculty/auth/logout"]){
+  assert.match(await html("/login?return_to="+encodeURIComponent(target)),/name="return_to" value="\/student"/);
+ }
+ const home=await req("/",owner);
+ assert.equal(home.status,200);
+ assert.equal(home.headers.get("location"),null);
+ const homepage=await home.text();
+ assert.doesNotMatch(homepage,/owner@example\.invalid|Open my profile|\/signin-with-chatgpt/);
+ assert.match(homepage,/<dialog[^>]*data-auto-open="false"/);
+ const popup=homepage.match(/<dialog[^>]+id="home-student-login"[\s\S]*?<\/dialog>/)?.[0]??"";
+ assert.match(popup,/href="\/login\?return_to=%2Fstudent"/);
+ assert.match(popup,/aria-label="Close student login"/);
+ assert.doesNotMatch(popup,/Browse courses without signing in/);
+ assert.doesNotMatch(homepage.match(/<footer[\s\S]*?<\/footer>/)?.[0]??"",/Career Development Cent(?:er|re)|cdc-overview/i);
+ assert.doesNotMatch(homepage,/Choose your portal|id="portals"/);
+ for(const p of ["/student","/faculty","/admin"])assert.ok(homepage.includes('href="'+p+'"'));
+ const unenteredOwner={...owner,"scs-active-portal":"admin"};
+ assert.doesNotMatch(await html("/student",unenteredOwner),studentNav);
+ assert.doesNotMatch(await html("/faculty",unenteredOwner),facultyNav);
+ assert.doesNotMatch(await html("/admin",unenteredOwner),adminNav);
+ const adminLanding=await html("/admin",unenteredOwner);
+ assert.doesNotMatch(adminLanding,/admin-sign-in-dialog|data-admin-sign-in/);
+ assert.match(adminLanding,/href="\/admin\/login"/);
+ assert.doesNotMatch(await html("/faculty",unenteredOwner),/Existing ChatGPT faculty login/);
+ for(const [headers,expected] of [[{}, {kind:"guest"}],[student,{kind:"denied"}],[owner,{kind:"owner",email:"owner@example.invalid"}]]){
+  const response=await req("/session/admin-account",headers);
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get("set-cookie"),null);
+  assert.equal(response.headers.get("cache-control"),"private, no-store");
+  assert.deepEqual(await response.json(),expected);
+ }
+ assert.equal((await req("/session/admin-account",owner,"",{headers:{origin:"https://other.invalid"}})).status,403);
+ assert.equal((await req("/session/admin-account",owner,"",{method:"POST"})).status,405);
+ assert.equal((await req("/api/admin",unenteredOwner)).status,401);
+ assert.equal((await req("/forms/admin/export",unenteredOwner)).status,403);
+ assert.equal((await req("/profile",unenteredOwner)).status,307);
+ assert.equal((await req("/login?return_to=%2Fadmin",owner)).headers.get("location"),"/admin/login");
+ assert.equal((await req("/session/enter",owner,"",form({return_to:"/admin"},"https://other.invalid"))).status,403);
+ assert.equal((await req("/session/enter",owner)).status,405);
+ assert.equal((await req("/session/enter",{},"",form({return_to:"/admin"}))).status,403);
+ assert.equal((await req("/session/enter",student,"",form({return_to:"/admin"}))).status,403);
+ const setup=await req("/session/enter",owner,"",form({return_to:"/admin"}));
+ assert.equal(setup.headers.get("location"),"/admin/security");
+ const wishlistTarget="/student?view=wishlist&course=toc-finite-automata";
+ const displayStudentSignIn=await req("/login?return_to="+encodeURIComponent(wishlistTarget),owner);
+ assert.equal(displayStudentSignIn.status,200);
+ assert.equal(displayStudentSignIn.headers.get("set-cookie"),null);
+ const studentSignIn=await displayStudentSignIn.text();
+ assert.doesNotMatch(studentSignIn,/Confirm your account|owner@example\.invalid/);
+ assert.match(studentSignIn,/<h1>Student sign in<\/h1>/);
+ assert.doesNotMatch(studentSignIn,/signin-with-chatgpt|ChatGPT/);
+ assert.ok(studentSignIn.includes('value="/student?view=wishlist&amp;course=toc-finite-automata"'));
+ const guestPopup=await req("/session/enter",{},"",form({return_to:"/student"}));
+ assert.equal(guestPopup.status,403);
+ assert.equal((await req("/session/enter",student,"",form({return_to:"/student"}))).status,403);
+ const studentMode=await activate("/student?view=applications");
+ assert.match(await html("/student",owner,studentMode),studentNav);
+ assert.doesNotMatch(await html("/admin",owner,studentMode),adminNav);
+ assert.doesNotMatch(await html("/student",student,studentMode),studentNav);
+ assert.doesNotMatch(await html("/",owner,studentMode),studentNav);
+ assert.equal((await req("/api/admin",owner,studentMode)).status,401);
+ const adminMode=await activate("/admin",owner,studentMode);
+ assert.match(await html("/admin",owner,adminMode),adminNav);
+ assert.match(await html("/admin",owner,adminMode),/action="\/session\/logout" method="post"/);
+ assert.equal((await req("/api/admin",owner,adminMode)).status,200);
+ assert.doesNotMatch(await html("/student",owner,adminMode),studentNav);
+ assert.doesNotMatch(await html("/student",owner,studentMode),studentNav);
+ const nonOwnerMode=await activate("/admin",student);
+ assert.match(await html("/admin",student,nonOwnerMode),/restricted to the site owner/);
+ assert.equal((await req("/api/admin",student,nonOwnerMode)).status,401);
+ assert.equal((await req("/forms/admin/export",student,nonOwnerMode)).status,403);
+ await db.prepare("INSERT INTO faculty_profiles(id,email,name,department,designation,created_at) VALUES (?,?,?,?,?,?)").bind("test-faculty",student["oai-authenticated-user-email"],"Test faculty","Computing","Faculty",new Date().toISOString()).run();
+ const facultyMode=await activate("/faculty?view=teaching",student,nonOwnerMode);
+ assert.match(await html("/faculty",student,facultyMode),facultyNav);
+ assert.equal((await req("/api/admin",student,facultyMode)).status,401);
+ const out=await req("/session/logout",owner,adminMode,form({}));
+ assert.equal(out.headers.get("location"),"/");
+ assert.equal(out.status,303);
+ assert.ok(out.headers.getSetCookie().every(v=>v.includes("Max-Age=0")));
+ assert.doesNotMatch(await html("/admin",owner,adminMode),adminNav);
+ assert.doesNotMatch(await html("/",owner,adminMode),/owner@example\.invalid|Open my profile/);
+ console.log("PASS: guest landing, explicit role selection, preserved deep links, identity-bound sessions, student/faculty/admin isolation, protected writes and logout.");
+}finally{await mf.dispose();}
