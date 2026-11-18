@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {getSiteContent} from "@/lib/admin-controls";
 import {chatGPTSignInPath,portalLoginPath,getChatGPTUser} from "./chatgpt-auth";
 import {HomeStudentLogin} from "./home-student-login";
@@ -14,11 +15,11 @@ export async function Header({portal,homeNavigation=false,suppressStudentPopup=f
  const privatePortal=login?.role==="Faculty"||login?.role==="Admin";
  return <header className="top">
   <div className="wrap nav">
-   <a className="brand" href="/">
+   <Link className="brand" href="/">
     <img className="brand-logo" src={content.studioLogo||"/favicon.svg"} alt="" width={40} height={40}/>
     <span><strong>{SITE_NAME}</strong><small>{content.tagline||"Five-day practical courses"}</small></span>
-   </a>
-   <nav aria-label="Main"><a href="/#courses">Courses</a><a href="/help">Help</a>
+   </Link>
+   <nav aria-label="Main"><Link href="/#courses">Courses</Link><a href="/help">Help</a>
     {homeUser?<a className="profile-nav" href="/profile" aria-label="Open my profile" title="My profile"><ProfileAvatar name={homeUser.displayName}/></a>:homeNavigation?<HomeStudentLogin autoOpen={!suppressStudentPopup} loginPath={portalLoginPath("/student")} signInPath={chatGPTSignInPath("/student")}/>:<a className="navbutton portal-auth-link" href={privatePortal?"#portal-sign-in":portalLoginPath(login?.path??"/student")} target={privatePortal?undefined:"_top"}><UserRound size={16} aria-hidden="true"/>{privatePortal?" "+login?.role+" sign in":" Sign in / Sign up"}</a>}
    </nav>
   </div>
