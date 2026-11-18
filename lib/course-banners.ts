@@ -1,5 +1,6 @@
+import {readBatchStart} from "./batch-schedule";
 import {cfg,db,getCourses,lookup} from "./enrollment";
-import {CRASH_SLUG,CRASH_TITLE,isCShortCourse} from "./courses";
+import {CRASH_SLUG,CRASH_TITLE,isCShortCourse,C_LAUNCH_START,C_LAUNCH_SCHEDULE,TRACK_DETAILS} from "./courses";
 export {CRASH_SLUG} from "./courses";
 
 const CRASH_BATCH="launch";
@@ -9,7 +10,7 @@ export const crashCourse={
  blurb:"A short-term course in C programming, launching before the regular Short Course Studio catalogue.",
 };
 const empty={faculty:"",qualification:"",profile:"",photo:"",starts_at:"",timing:"",visible:1};
-const crashDefaults={...empty,faculty:"Horesh Sir",qualification:"M.Tech from NSUT, Delhi",profile:"DSA Tech Trainer at GL Bajaj Institute of Technology & Management",photo:CRASH_PHOTO,starts_at:"2026-11-26T20:00"};
+const crashDefaults={...empty,faculty:"Horesh Sir",qualification:"M.Tech from NSUT, Delhi",profile:"DSA Tech Trainer at GL Bajaj Institute of Technology & Management",photo:CRASH_PHOTO,starts_at:C_LAUNCH_START};
 type BannerFields=typeof empty;
 type BannerRecord=BannerFields&{slug:string;batch:string};
 type SessionStart={slug:string;batch:string;starts_at:string};
@@ -45,20 +46,34 @@ export async function saveBanner(slug:string,batch:string,val:(key:string)=>stri
  return true;
 }
 type Courses=Awaited<ReturnType<typeof getCourses>>;
-export async function getUpcomingBanners(courses:Courses,now=Date.now()){
+export async function getUpcomingBanners(courses:Courses,now=Date.now(),includeCatalogue=false){
  const [records,starts]=cfg.DB?await Promise.all([
   db().prepare("SELECT * FROM course_banners").all<BannerRecord>(),
   db().prepare("SELECT slug,batch,MIN(starts_at) AS starts_at FROM class_sessions WHERE starts_at <> '' GROUP BY slug,batch").all<SessionStart>()
  ]):[{results:[] as BannerRecord[]},{results:[] as SessionStart[]}];
- const available=[{...crashCourse,crash:true,status:"soon",mode:"",schedule:""},...courses.filter(c=>c.status!=="closed"&&!isCShortCourse(c.slug)).map(c=>({...c,crash:false}))];
- return available.flatMap(course=>{
+ const cCourse=courses.find(c=>c.slug===CRASH_SLUG);
+ const available=[...(cCourse?[{...crashCourse,title:cCourse.title,crash:true,status:cCourse?.status??"soon",mode:cCourse?.mode??"",schedule:cCourse?.schedule??"",intakePaused:cCourse.intakePaused,intakeConstraint:cCourse.intakeConstraint}]:[]),...courses.filter(c=>c.status!=="closed"&&!isCShortCourse(c.slug)).map(c=>({...c,crash:false}))];
+ const valid=available.flatMap(course=>{
   const saved=records.results.find(r=>r.slug===course.slug&&r.batch===course.batch);
   const f=bannerFields(course.slug,saved);
   if(!f.visible)return [];
-  const start=f.starts_at||starts.results.find(s=>s.slug===course.slug&&s.batch===course.batch)?.starts_at||"";
-  if((start&&(!dateIsValid(start)||instant(start)<=now))||(!start&&!course.crash&&!saved))return [];
-  return [{...course,...f,start,when:start?instant(start):Infinity}];
- }).sort((a,b)=>(a.when-b.when)||(Number(b.crash)-Number(a.crash))||a.title.localeCompare(b.title));
+  const original=courses.find(c=>c.slug===course.slug)!;
+  const batchStart=original.schedule===C_LAUNCH_SCHEDULE?"":readBatchStart(original.schedule);
+  const start=starts.results.find(s=>s.slug===course.slug&&s.batch===original.batch)?.starts_at||batchStart||f.starts_at||"";
+  if(start&&(!dateIsValid(start)||instant(start)<=now))return [];
+  const spotlight=!start&&!course.crash&&!saved;
+  if(spotlight&&!includeCatalogue)return [];
+  const data=TRACK_DETAILS[original.track];
+  return [{...course,...f,faculty:f.faculty||original.instructor||"",start,when:start?instant(start):Infinity,
+   track:original.track,tag:data.tag,trackLabel:data.label,exclusive:!!original.exclusive,spotlight}];
+ });
+ const announcements=valid.filter(x=>!x.spotlight).sort((a,b)=>(a.when-b.when)||(Number(b.crash)-Number(a.crash))||a.title.localeCompare(b.title));
+ if(!includeCatalogue)return announcements;
+ const seen=new Set(announcements.map(x=>x.track));
+ const spotlights=valid.filter(x=>x.spotlight);
+ const diverse=spotlights.filter(x=>{if(seen.has(x.track))return false;seen.add(x.track);return true;});
+ const diverseSlugs=new Set(diverse.map(x=>x.slug));
+ return [...announcements,...diverse,...spotlights.filter(x=>!diverseSlugs.has(x.slug))];
 }
 export function bannerStart(value:string){
  return new Intl.DateTimeFormat("en-IN",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Kolkata"}).format(instant(value))+" IST";

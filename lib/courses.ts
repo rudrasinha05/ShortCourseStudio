@@ -209,7 +209,10 @@ const cProgramming:Course[]=[
  ]),objectives:["Choose between sequential and binary search based on the ordering requirement.","Implement linked lists, stacks and queues and test their boundary cases.","Explain an array-versus-linked-list design trade-off using operation counts."]}
 ];
 export const CRASH_SLUG="c-by-horesh-sir";
-export const CRASH_TITLE="C by Horesh Sir";
+export const C_LAUNCH_START="2026-11-26T20:00";
+export const C_LAUNCH_SCHEDULE="Starts 26 November 2026 at 8:00 PM IST";
+export const C_LAUNCH_MODE="Online";
+export const CRASH_TITLE="C Programming";
 export const C_DAY_SLUGS=cProgramming.map(c=>c.slug);
 export const cDayNumber=(slug:string)=>C_DAY_SLUGS.indexOf(slug)+1;
 export const registrationSlug=(slug:string)=>cDayNumber(slug)?CRASH_SLUG:slug;
@@ -222,7 +225,7 @@ const crash:Course={
  days:cProgramming.map(c=>[c.title,c.outcome]),
 };
 export const REGULAR_TRACKS = TRACKS.filter(track=>track!=="C Programming");
-const regularCourses=[...core,...additional];
+const regularCourses=[...core,...additional].map(course=>course.track==="Computer Networks"?{...course,instructor:"Mohit Sharma"}:course);
 export const regularModules=(track:Track)=>regularCourses.filter(course=>course.track===track);
 const facultyCourses:Course[]=facultyTemplates.map((item)=>{
  const modules=regularModules(item.track);
