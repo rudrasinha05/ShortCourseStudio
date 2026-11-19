@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {getSiteUser,portalLoginPath} from "../site-auth";
 import {PaymentStatusCheck} from "./payment-status-check";
 import {checkoutStatus,checkoutUrl,getBillingAddress} from "@/lib/billing";
@@ -40,8 +41,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
  const selected=row?allCourses.find(c=>c.slug===row.slug):null;
  const sessions=row&&hasClassAccess(row)?await getClassSessions(row.slug,row.batch):null;
  const legacyDay=!!row&&!!cDayNumber(row.slug);
- const cCourse=row?.slug===CRASH_SLUG;
- const enrolled=!!row&&cCourse&&hasClassAccess(row);
+ const enrolled=!!row&&!legacyDay&&hasClassAccess(row);
  const mode=legacyDay?null:paymentMode();
  const [notices,billing,checkout]=row?await Promise.all([getNoticeTemplates(),legacyDay?null:getBillingAddress(row.id),legacyDay?null:checkoutStatus(row)]):[null,null,null];
  const notice=row&&(row.review_state==="accepted"?notices?.accepted:row.review_state==="declined"?notices?.declined:notices?.receipt);
@@ -61,7 +61,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
    {notice&&<p className="mutedbox">{notice}</p>}
    <dl className="receipt-details"><dt>Application reference</dt><dd className="ref">{row.id}</dd>{tokenRow&&receiptToken&&<><dt>Private tracking code</dt><dd className="ref">{receiptToken}</dd></>}<dt>Review status</dt><dd>{reviewLabels[row.review_state]??"Submitted"}</dd>{!legacyDay&&<><dt>Payment</dt><dd>{row.payment_state==="paid"?"Payment verified":row.payment_state==="test_paid"?"Test payment verified — no real fee collected":"Not paid"}</dd></>}</dl>
    {legacyDay&&<p className="mutedbox">This reference is for an older day-only application. <a className="textlink" href={"/apply?course="+CRASH_SLUG}>Open the full five-day course application</a>.</p>}
-   {!legacyDay&&<p className="mutedbox">{row.payment_state==="paid"?(enrolled?"Your fee is verified and your seat is confirmed for all five days.":"Your fee has been received."):row.payment_state==="test_paid"?"This was a test transaction.":!mode?"Online payment is not enabled. No payment was collected.":checkout?.available?"Continue to payment when you’re ready.":checkout?.message}</p>}
+   {!legacyDay&&<p className="mutedbox">{row.payment_state==="paid"?(enrolled?"Your fee is verified and your seat is confirmed for all five days.":"Your fee has been received."):row.payment_state==="test_paid"?(enrolled?"Test payment verified. You are enrolled in this batch while the site is in test mode.":"This was a test transaction."):row.payment_state==="refunded"?"Your fee was refunded to the original payment method, and this enrollment has ended.":!mode?"Online payment is not enabled. No payment was collected.":checkout?.available?"Continue to payment when you’re ready.":checkout?.message}</p>}
    {!legacyDay&&mode&&row.order_id&&row.payment_state==="unpaid"&&<PaymentStatusCheck id={row.id} token={tokenRow?receiptToken:undefined} receipt={checkoutUrl("receipt",row.id)} onReceipt/>}
    {sessions&&<section className="class-schedule" aria-label="My batch"><h2>My batch</h2><p>Class timings are shown in India Standard Time.</p>
    {sessions.map(s=><div key={s.day} className="app-record"><h3>Day {s.day}</h3>
@@ -74,7 +74,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
    <div className="actions">{canContinue&&<a className="btn primary" href={checkoutUrl(billing?"payment":"billing",row.id)}>{billing?"Continue to payment":"Add billing address"}</a>}<a className="btn secondary" href={"/apply?ref="+row.id}>Refresh status</a><a className="btn secondary" href="/apply">Apply for another course</a></div>
  </div>:<>
  {id&&<p className="mutedbox">To open this application, check your <a className="textlink" href="/student?view=applications">Student Portal</a> or use <a className="textlink" href={"/application-status?ref="+id}>application recovery</a>.</p>}
- {user?<ApplicationForm key={selectedSlug} courses={options} selected={selectedSlug} mode={mode} profile={account?{name:account.displayName,email:account.email}:undefined}/>:<div className="panel formpanel"><span className="mini"><LogIn size={21}/></span><h2>Student sign in</h2><p>{courses.find(c=>c.slug===selectedSlug)?.title?<>Selected course <strong>{courses.find(c=>c.slug===selectedSlug)?.title}</strong></>:"Your application will be linked to your student account."}</p><div className="actions"><a className="btn primary" href={signInHref}>Student sign in</a><a className="btn secondary" href="/#courses">Browse courses</a></div></div>}
+ {user?<ApplicationForm key={selectedSlug} courses={options} selected={selectedSlug} mode={mode} profile={account?{name:account.displayName,email:account.email}:undefined}/>:<div className="panel formpanel"><span className="mini"><LogIn size={21}/></span><h2>Student sign in</h2><p>{courses.find(c=>c.slug===selectedSlug)?.title?<>Selected course <strong>{courses.find(c=>c.slug===selectedSlug)?.title}</strong></>:"Your application will be linked to your student account."}</p><div className="actions"><a className="btn primary" href={signInHref}>Student sign in</a><Link className="btn secondary" href="/#courses">Browse courses</Link></div></div>}
  </>}
  </section></Frame>;
 }

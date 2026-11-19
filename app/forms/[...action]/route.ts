@@ -8,7 +8,7 @@ import {adminTarget} from "@/lib/admin-navigation";
 import {isAllowed,openSupport,respondSupport,saveStaff,type StaffRole} from "@/lib/staff";
 import {actorFor,addApplicantNote,audit,certificateAction,markProposalRevision,recordLearning,recordOfflinePayment,restoreSettings,saveBatchRules,saveCatalogueCourse,saveMaterials,saveNotices,saveWebsite,switchBatch,updateFacultyProfile} from "@/lib/admin-controls";
 import {setBatchIntake,setSiteControls} from "@/lib/intake-admin";
-import {authorizedAdmin,getApplication,lookup} from "@/lib/enrollment";
+import {authorizedAdmin,db,getApplication,lookup} from "@/lib/enrollment";
 import {CRASH_SLUG,saveBanner} from "@/lib/course-banners";
 import {saveClassSessions,setClassAccess} from "@/lib/class-sessions";
 import {addFaculty,claimApplication,facultyFor,maxSyllabusBytes,recordAssignment,requestIdentity,reviewProposal,setFacultyActive,setProgress,submitProposal} from "@/lib/portals";
@@ -16,6 +16,7 @@ import {portalLoginPath} from "@/app/site-auth";
 import {accessCookie,codePattern,refPattern,createApplication,csv,csvHeader,listApplications,saveCourse,updateReview} from "@/lib/form-workflows";
 
 export const dynamic="force-dynamic";
+const paidApplication=async(id:string)=>!!(await db().prepare("SELECT 1 FROM applications WHERE id=? AND payment_state IN ('paid','test_paid')").bind(id).first());
 const common={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"};
 const move=(path:string,cookie?:string)=>new Response(null,{status:303,headers:{...common,Location:path,...(cookie?{"Set-Cookie":cookie}:{})}});
 const text=(value:string,status:number)=>new Response(value,{status,headers:{...common,"Content-Type":"text/plain; charset=utf-8"}});
@@ -181,8 +182,11 @@ export async function POST(req:Request){
   const isAccess=path.endsWith("/class-access");
   const done=isAccess?await setClassAccess(val("id"),val("grant")):await updateReview(val("id"),val("review"));
   if(done)await audit(actorFor(req),isAccess?"class access "+val("grant"):"review "+val("review"),val("id"));
+  // Declining an application whose fee was collected leaves money to return; say so instead of failing silently.
+  const refundDue=done&&!isAccess&&val("review")==="declined"&&await paidApplication(val("id"));
+  if(refundDue)await audit(actorFor(req),"declined after payment: issue the refund in Razorpay",val("id"));
   if(!isAccess&&val("staff")==="yes")return move("/staff?message="+(done?"saved":"invalid"));
-  return move(adminTarget("applications",{course:slug,...applicantReturn,message:done?(isAccess?"access-saved":"reviewed"):(isAccess?"access-invalid":"invalid")}));
+  return move(adminTarget("applications",{course:slug,...applicantReturn,message:done?(isAccess?"access-saved":refundDue?"reviewed-refund":"reviewed"):(isAccess?"access-invalid":"invalid")}));
  }catch(e){
   console.error("Form request failed",path,e instanceof Error?e.name:"Unknown");
   if(path==="/forms/apply")return apply("retry");

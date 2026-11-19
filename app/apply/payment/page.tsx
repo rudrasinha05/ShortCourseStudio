@@ -24,6 +24,7 @@ export default async function PaymentPage({searchParams}:{searchParams:Promise<{
     <ul className="checkout-method-list" aria-label="Supported methods when checkout is enabled"><li>UPI</li><li>Debit and credit cards</li><li>Net banking</li><li>Wallets</li></ul>
    </>}
    <p className="checkout-safety"><LockKeyhole size={15} aria-hidden="true"/> Payment details are entered only in Razorpay checkout.</p>
+   <p className="checkout-terms">By paying, you agree to the <a className="textlink" href="/terms">Terms &amp; conditions</a> and the <a className="textlink" href="/refund-policy">Cancellation &amp; refund policy</a>.</p>
    <div className="actions"><a className="btn secondary" href={receipt}>View application status</a></div>
   </section>
  </section></Frame>;

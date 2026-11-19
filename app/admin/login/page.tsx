@@ -26,6 +26,7 @@ export default async function AdminLogin({searchParams}:{searchParams:Promise<{e
      <button className="btn primary">Sign in <ArrowRight size={17} aria-hidden="true"/></button>
     </form>
     <div className="admin-google-login"><p>Or sign in with</p>
+     {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- the OAuth start route needs a full-page navigation */}
      {google?<a href="/admin/auth/google/start" className="btn secondary" target="_top">Sign in with Google</a>:<button className="btn secondary" type="button" disabled aria-describedby="google-login-status">Sign in with Google</button>}
      {!google&&<small id="google-login-status">Google sign-in is not configured yet.</small>}
     </div>

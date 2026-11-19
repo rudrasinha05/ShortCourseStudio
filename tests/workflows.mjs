@@ -113,7 +113,7 @@ try{
  assert.doesNotMatch(await(await req("/")).text(),/<h2 class="poster-title"><span class="poster-letter">C<\/span>(?:<!-- -->)? <span class="poster-name">Programming<\/span><\/h2>/s);
  assert.match(catalog,/class="institution-mark" aria-label="Powered by GL Bajaj"/);
  const header=catalog.match(/<header class="top">.*?<\/header>/s)?.[0]??"";
- assert.match(header,/<a class="brand" href="\/"><img class="brand-logo" src="\/favicon.svg"[^>]*><span><strong>Short Course Studio/);
+ assert.match(header,/<a (?:class="brand" href="\/"|href="\/" class="brand")><img class="brand-logo" src="\/favicon.svg"[^>]*><span><strong>Short Course Studio/);
  assert.match(header,/<div class="institution-mark"[^>]*><img class="institution-logo" src="\/gl-bajaj-crest.png"[^>]*><div><span>Powered by<\/span><strong>GL Bajaj/);
  for(const [href,title] of [["/about","About us"],["/faq","FAQ"],["/help","Help &amp; support"]]){
   assert.ok(catalog.includes('<a href="'+href+'">'+title+'</a>'));

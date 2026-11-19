@@ -114,7 +114,8 @@ try{
  assert.match(await op("offline-payment",{id,reference:"TEST-01",amount:"1750.50"}),/controlMessage=saved/);
  const verified=await db.prepare("SELECT payment_state,class_access FROM applications WHERE id=?").bind(id).first();
  assert.equal(verified.payment_state,"paid");
- assert.equal(verified.class_access,0);
+ // A verified offline fee enrolls the student, the same as an online capture.
+ assert.equal(verified.class_access,1);
  await req("/forms/admin/review",{id,slug,review:"accepted"},admin);
  await req("/forms/admin/class-access",{id,slug,grant:"yes"},admin);
  assert.match(await op("learning",{id,present1:"yes",present3:"yes",score:"89",result:"passed"}),/controlMessage=saved/);

@@ -206,9 +206,10 @@ try{
  assert.match(await html("/student?view=explore",student),/Add your interests or skills above/);
  assert.ok(explore.indexOf('id="related"')>=0&&explore.indexOf('id="related"')<explore.indexOf('id="recommended"'));
  const ownerReceipt=await html("/apply?ref="+reference,student);
- assert.match(ownerReceipt,/Application received/);
+ // Accepted with class access above, so the receipt confirms enrollment for any course.
+ assert.match(ownerReceipt,/Enrollment confirmed/);
  assert.doesNotMatch(ownerReceipt,/Private tracking code/);
- assert.doesNotMatch(await html("/apply?ref="+reference,other),/Application received/);
+ assert.doesNotMatch(await html("/apply?ref="+reference,other),/Enrollment confirmed|Application received/);
  const ownerStatus=(path,headers)=>scopedFetch(mf,"https://site.test"+path,{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({id:reference})});
  assert.equal((await ownerStatus("/api/applications/status",student)).status,200);
  assert.equal((await ownerStatus("/api/applications/status",other)).status,404);

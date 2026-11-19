@@ -1,7 +1,7 @@
 import {z} from "zod";
-import {applicationsOpen,db,getApplication,getOwnedApplication,lookup,paymentMode,type Application} from "./enrollment";
+import {applicationsOpen,db,getApplication,getOwnedApplication,lookup,paymentAmount,paymentMode,type Application} from "./enrollment";
 import {getBatchRules} from "./admin-controls";
-import {cDayNumber,CRASH_SLUG,PAISE} from "./courses";
+import {cDayNumber} from "./courses";
 
 export const billingSchema=z.object({
  name:z.string().trim().min(2).max(100),
@@ -21,7 +21,7 @@ export async function checkoutApplication(id:string,cookie?:string,userId?:strin
  return {row:byCode??(userId?await getOwnedApplication(id,userId):null),token:byCode?token:undefined};
 }
 
-export const paymentAmount=(row:Application)=>row.amount===0&&row.slug===CRASH_SLUG?PAISE:row.amount;
+export {paymentAmount};
 
 export async function checkoutStatus(row:Application){
  const course=await lookup(row.slug);

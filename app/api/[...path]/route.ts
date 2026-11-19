@@ -1,14 +1,18 @@
 import {facultyIdentity} from "@/lib/faculty-auth";
 import {checkoutStatus,getBillingAddress} from "@/lib/billing";
+import {hasClassAccess} from "@/lib/class-sessions";
 import {audit,actorFor} from "@/lib/admin-controls";
 import {proposalDocument,requestIdentity} from "@/lib/portals";
 import { z } from "zod";
-import { cDayNumber,CRASH_SLUG } from "@/lib/courses";
-import {cfg,db,getCourses,paymentMode,authorizedAdmin,secureEqual,signature,getApplication,getOwnedApplication,gateway,markPaid,type Application} from "@/lib/enrollment";
+import { cDayNumber } from "@/lib/courses";
+import {cfg,db,getCourses,paymentMode,razorpay,authorizedAdmin,secureEqual,signature,getApplication,getOwnedApplication,gateway,markPaid,markRefunded,type Application} from "@/lib/enrollment";
 import { createApplication,saveCourse } from "@/lib/form-workflows";
 export const dynamic = "force-dynamic";
 const ref=z.object({id:z.string().max(30),token:z.string().max(80).optional()});
 const orderPattern=/^order_[A-Za-z0-9]{5,40}$/,paymentPattern=/^pay_[A-Za-z0-9]{5,40}$/;
+// Shape of a Razorpay webhook body. Every field is checked at runtime before use.
+type RazorpayEntity={id?:unknown;status?:unknown;currency?:unknown;order_id?:unknown;payment_id?:unknown;amount?:unknown};
+type PaymentWebhook={event?:unknown;payload?:{payment?:{entity?:RazorpayEntity};refund?:{entity?:RazorpayEntity}}};
 type OrderPayments={items?:{id:string;order_id:string;amount:number;currency:string;status:string}[]};
 const verify=ref.extend({razorpay_order_id:z.string().regex(orderPattern),razorpay_payment_id:z.string().regex(paymentPattern),razorpay_signature:z.string().regex(/^[a-f0-9]{64}$/)});
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
@@ -38,23 +42,40 @@ export async function POST(req:Request){
  const webhook=path==="/api/payments/webhook";
  if(!webhook && req.headers.get("origin") && req.headers.get("origin")!==url.origin && req.headers.get("sec-fetch-site")!=="same-origin")return fail("Invalid request origin.",403);
  if(!req.headers.get("content-type")?.toLowerCase().includes("application/json"))return fail("Expected JSON.",415);
- let raw:string,data:any;
+ let raw:string,data:unknown;
  try{raw=await rawBody(req);data=JSON.parse(raw);}catch{return fail("Invalid or oversized request.",400);}
  try{
  if(webhook){
    const mode=paymentMode(),provided=req.headers.get("x-razorpay-signature")||"";
-   if(!mode||!cfg.RAZORPAY_WEBHOOK_SECRET||!secureEqual(await signature(cfg.RAZORPAY_WEBHOOK_SECRET,raw),provided))return fail("Invalid webhook signature.",401);
-   if(data?.event!=="payment.captured")return reply({received:true});
-   const p=data?.payload?.payment?.entity;
-   if(p?.status!=="captured"||p?.currency!=="INR"||!paymentPattern.test(p?.id||"")||typeof p?.order_id!=="string"||!orderPattern.test(p.order_id)||!Number.isSafeInteger(p?.amount)||p.amount<=0)return fail("Invalid payment.",400);
+   const secret=razorpay().webhookSecret;
+   if(!mode||!secret||!secureEqual(await signature(secret,raw),provided))return fail("Invalid webhook signature.",401);
+   const event=data as PaymentWebhook|null;
+   if(event?.event==="refund.processed"){
+     const r=event.payload?.refund?.entity;
+     if(typeof r?.payment_id!=="string"||!paymentPattern.test(r.payment_id)||typeof r.amount!=="number"||!Number.isSafeInteger(r.amount)||r.amount<=0)return fail("Invalid refund.",400);
+     const row=await db().prepare("SELECT * FROM applications WHERE payment_id = ?").bind(r.payment_id).first<Application>();
+     if(!row)await audit("razorpay webhook","refund for unknown payment "+r.payment_id,"payments");
+     else if(r.amount>=row.amount){if(await markRefunded(row,r.payment_id))await audit("razorpay webhook","full refund recorded; class access removed",row.id);}
+     else await audit("razorpay webhook","partial refund of "+r.amount+" paise; access unchanged",row.id);
+     return reply({received:true});
+   }
+   if(event?.event!=="payment.captured")return reply({received:true});
+   const p=event.payload?.payment?.entity;
+   if(p?.status!=="captured"||p?.currency!=="INR"||typeof p?.id!=="string"||!paymentPattern.test(p.id)||typeof p?.order_id!=="string"||!orderPattern.test(p.order_id)||typeof p?.amount!=="number"||!Number.isSafeInteger(p.amount)||p.amount<=0)return fail("Invalid payment.",400);
    const row=await db().prepare("SELECT * FROM applications WHERE order_id = ?").bind(p.order_id).first<Application>();
-   if(row&&row.amount===p.amount&&row.payment_order_mode===mode&&!await markPaid(row,p.id))return fail("Payment needs reconciliation.",409);
+   // A captured payment that matches no application must not disappear silently.
+   if(!row||row.amount!==p.amount||row.payment_order_mode!==mode){await audit("razorpay webhook","unmatched captured payment "+p.id+" for order "+p.order_id,row?.id??"payments");return reply({received:true});}
+   if(!await markPaid(row,p.id)){
+     if(row.payment_id!==p.id)await audit("razorpay webhook","captured payment "+p.id+" could not be applied; refund or reconcile",row.id);
+     return fail("Payment needs reconciliation.",409);
+   }
    return reply({received:true});
  }
  if(path==="/api/admin/course"){
    if(!await authorizedAdmin(req))return fail("Admin access denied.",401);
-   const error=await saveCourse(typeof data?.slug==="string"?data.slug:"",data);
-   if(!error)await audit(actorFor(req),"edit course",data.slug);
+   const slug=data&&typeof data==="object"&&"slug" in data&&typeof data.slug==="string"?data.slug:"";
+   const error=await saveCourse(slug,data);
+   if(!error)await audit(actorFor(req),"edit course",slug);
    return error?fail(error==="schedule"?"Add a schedule and delivery mode before opening applications.":error==="instructor"?"Assign one instructor before opening this exclusive batch.":error==="parent-course"?"Open applications on the full C course, not on a day plan.":"Check the five day entries and batch fields.",400):reply({ok:true});
  }
  if(path==="/api/applications"){
@@ -72,7 +93,7 @@ export async function POST(req:Request){
    if(!row)return fail("Application not found.",404);
    const day=!!cDayNumber(row.slug);
    const mode=day?null:paymentMode();
-   if(path==="/api/applications/status")return reply({id:row.id,paymentState:day?"not_required":row.payment_state,paymentMode:mode,slug:row.slug,...(row.slug===CRASH_SLUG?{enrolled:row.payment_state==="paid"&&row.review_state==="accepted"&&row.class_access===1}:{})});
+   if(path==="/api/applications/status")return reply({id:row.id,paymentState:day?"not_required":row.payment_state,paymentMode:mode,slug:row.slug,enrolled:!day&&hasClassAccess(row)});
    if(day)return fail("Use the application for the complete five-day course.",409);
    if(!mode)return fail("Online payment is not enabled.",503);
    if(row.payment_state==="paid"||row.payment_state==="test_paid")return reply({paymentState:row.payment_state});
@@ -105,10 +126,10 @@ export async function POST(req:Request){
        if(!saved?.order_id||saved.payment_order_mode!==mode||saved.amount!==amount)return fail("The order could not be confirmed. Open application status before retrying.",409);
        order=saved.order_id;
      }
-     return reply({orderId:order,key:cfg.RAZORPAY_KEY_ID,amount,course:checkout.course.title,mode});
+     return reply({orderId:order,key:razorpay().keyId,amount,course:checkout.course.title,mode});
    }
    const p=verify.parse(data);
-   if(!row.order_id||p.razorpay_order_id!==row.order_id||!cfg.RAZORPAY_KEY_SECRET||!secureEqual(await signature(cfg.RAZORPAY_KEY_SECRET,row.order_id+"|"+p.razorpay_payment_id),p.razorpay_signature))return fail("Payment signature could not be verified.",400);
+   if(!row.order_id||p.razorpay_order_id!==row.order_id||!razorpay().keySecret||!secureEqual(await signature(razorpay().keySecret,row.order_id+"|"+p.razorpay_payment_id),p.razorpay_signature))return fail("Payment signature could not be verified.",400);
    const payment=await gateway("payments/"+p.razorpay_payment_id);
    if(payment.id!==p.razorpay_payment_id||payment.order_id!==row.order_id||payment.amount!==row.amount||payment.currency!=="INR")return fail("Payment details do not match this application.",400);
    if(payment.status!=="captured")return reply({paymentState:"pending"},202);
