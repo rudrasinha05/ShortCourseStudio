@@ -70,7 +70,7 @@ export default async function Apply({searchParams}:{searchParams:Promise<{course
    {s.replay_url?<a className="btn secondary" href={s.replay_url} target="_blank" rel="noopener noreferrer">Watch replay</a>:<small>Recording not available yet</small>}</div></div>)}
    </section>}
    {tokenRow&&receiptToken&&<p>Save the reference and keep the tracking code private. You can use them to recover an application that is not linked to your Student Portal.</p>}
-   <p>Submitting a form alone does not confirm a seat.</p>
+   {!enrolled&&<p>Submitting a form alone does not confirm a seat.</p>}
    <div className="actions">{canContinue&&<a className="btn primary" href={checkoutUrl(billing?"payment":"billing",row.id)}>{billing?"Continue to payment":"Add billing address"}</a>}<a className="btn secondary" href={"/apply?ref="+row.id}>Refresh status</a><a className="btn secondary" href="/apply">Apply for another course</a></div>
  </div>:<>
  {id&&<p className="mutedbox">To open this application, check your <a className="textlink" href="/student?view=applications">Student Portal</a> or use <a className="textlink" href={"/application-status?ref="+id}>application recovery</a>.</p>}

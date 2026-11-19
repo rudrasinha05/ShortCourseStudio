@@ -12,7 +12,7 @@ const anchors:Record<string,AdminSection>={
  "applications":"students","support-requests":"students",
  "enrollment-controls":"courses","batch-editor":"courses","batch-rules":"courses","catalogue-controls":"courses","course-management":"courses",
  "class-schedule":"classes","learning-materials":"classes",
- "faculty-directory":"faculty","faculty-proposals":"faculty","assignments":"faculty",
+ "faculty-directory":"faculty","faculty-accounts":"faculty","faculty-proposals":"faculty","assignments":"faculty",
  "website-content":"website","notice-templates":"website","site-controls":"website","crash-banner":"website","course-banner":"website",
  "batch-reports":"reports","launch-readiness":"reports","staff-access":"reports","change-history":"reports",
 };
@@ -27,7 +27,7 @@ export const adminViews={
 const anchorViews:Record<string,string>={
  "applications":"applications","support-requests":"support","enrollment-controls":"admissions","batch-editor":"admissions","batch-rules":"batch",
  "catalogue-controls":"catalogue","course-management":"syllabus","class-schedule":"schedule","learning-materials":"resources",
- "faculty-directory":"directory","faculty-proposals":"proposals","assignments":"assignments",
+ "faculty-directory":"directory","faculty-accounts":"directory","faculty-proposals":"proposals","assignments":"assignments",
  "website-content":"content","notice-templates":"messages","site-controls":"controls","crash-banner":"banners","course-banner":"banners",
  "batch-reports":"summary","launch-readiness":"launch","staff-access":"access","change-history":"audit",
 };
