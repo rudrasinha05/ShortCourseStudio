@@ -250,7 +250,7 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 .admin-hero p:last-child{color:#deebf8;font-size:15px}
 .admin-kicker{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
 .admin-hero .admin-kicker{color:#afe2ed}
-.admin-site-link{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;padding:8px 12px;border:1px solid #81a1bc;border-radius:8px;color:#fff;font-size:13px;font-weight:750}
+.admin-site-link{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;padding:8px 12px;border:1px solid #81a1bc;border-radius:8px;color:#fff;font-size:13px;font-weight:750;background:transparent}
 .admin-site-link:hover{background:#305775}
 .admin-layout{display:grid;grid-template-columns:196px minmax(0,1fr);align-items:start;gap:clamp(15px,2.8vw,30px);margin-top:22px}
 .admin-sidebar{display:grid;gap:4px;position:sticky;top:16px;border:1px solid var(--admin-line);border-radius:12px;padding:10px;background:#fff}
@@ -334,6 +334,8 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 .info-page .panel h2{margin-bottom:3px}
 .info-page .info-preline{white-space:pre-line}
 .info-page #sign-in{scroll-margin-top:16px}
+/* Tablet: brand on its own row, then the four link groups. */
+@media(max-width:1023px){.footer-directory{grid-template-columns:repeat(4,minmax(0,1fr))}.footer-identity{grid-column:1/-1}}
 @media(max-width:760px){.footer-directory{grid-template-columns:repeat(2,minmax(0,1fr))}.footer-identity{grid-column:1/-1}}
 @media(max-width:470px){.footer-directory{grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}.footer-links a{min-height:28px}}
 
@@ -507,7 +509,7 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 .profile-home-link{display:flex;width:fit-content;align-items:center;gap:7px}
 .profile-nav .profile-avatar{width:34px;height:34px}.profile-placeholder{display:flex;align-items:center;justify-content:center;color:var(--green)}
 .profile-page{padding:44px 0 60px}.profile-page h1{font-size:40px}.profile-grid{display:grid;grid-template-columns:minmax(230px,320px) minmax(0,1fr);gap:24px;margin-top:28px;align-items:start}.profile-card{padding:26px;margin-bottom:20px;overflow-wrap:anywhere}.profile-card>.profile-avatar{width:108px;height:108px}.profile-card h2{margin:18px 0 12px}.photo-editor{display:grid;gap:14px;margin-top:24px}.photo-editor input{max-width:100%;font-size:13px}.photo-editor small{color:var(--muted)}.profile-links{display:grid;gap:14px}.profile-links a{padding:12px;background:var(--soft);border-radius:8px;font-weight:600}.application-profile{display:flex;align-items:center;gap:16px;padding:18px;background:var(--soft);border-radius:12px;margin:18px 0}.application-profile p{margin:4px 0;overflow-wrap:anywhere;font-size:14px}.application-profile>div{min-width:0}
-@media(max-width:660px){.profile-grid{grid-template-columns:1fr}.profile-page{padding-top:28px}.profile-card{padding:20px}.profile-nav .profile-avatar{width:30px;height:30px}.application-profile{padding:12px}}
+@media(max-width:660px){.profile-grid{grid-template-columns:minmax(0,1fr)}.profile-grid>*{min-width:0}.profile-card input,.profile-card button{max-width:100%}.profile-page{padding-top:28px}.profile-card{padding:20px}.profile-nav .profile-avatar{width:30px;height:30px}.application-profile{padding:12px}}
 
 .faculty-login-shell{padding-block:clamp(1.5rem,4vw,3rem) 3rem}
 .faculty-login-back{display:inline-flex;align-items:center;gap:.45rem;margin-bottom:1rem}
@@ -660,3 +662,16 @@ a.portal-login-help{display:inline-flex}
 .contact-address,.policy-paragraph{white-space:pre-line}
 .checkout-terms{font-size:13px}
 @media(max-width:470px){.contact-details div{grid-template-columns:1fr;gap:2px}}
+
+/* Links inside the dark portal header need a light colour to stay readable. */
+.admin-hero .textlink{color:#afe2ed}
+.admin-hero .textlink:hover{color:#fff}
+/* Report table keeps readable columns and scrolls sideways on phones instead of breaking words. */
+.report-table-wrap{padding:0}
+.report-table{min-width:560px}
+.report-table th,.report-table td{padding:11px 12px}
+.report-table thead th{white-space:nowrap}
+.report-table td:last-child,.report-table th:last-child{text-align:right;white-space:nowrap}
+/* Links in the checkout agreement sit inline with the sentence. */
+.checkout-terms{line-height:1.6;color:var(--muted)}
+.checkout-terms .textlink{display:inline;min-height:0;padding:0}
