@@ -14,7 +14,7 @@ import {ArrowRight,BookOpen,Compass,LayoutDashboard,LifeBuoy,ClipboardList,Heart
 import {Badge,Frame} from "@/app/ui";
 import {PortalAccount,PortalNotice,PortalSignIn} from "@/app/portal-ui";
 import {CourseSlideshow} from "./course-slideshow";
-import {canApply,getCourses,intakeStatus,publicCatalogue} from "@/lib/enrollment";
+import {canApply,getCourses,intakeStatus,isPaidState,publicCatalogue} from "@/lib/enrollment";
 import {getClassSessions,formatClassTime,hasClassAccess} from "@/lib/class-sessions";
 import {reviewLabels} from "@/lib/form-workflows";
 import {studentApplications} from "@/lib/portals";
@@ -64,7 +64,7 @@ export default async function Student({searchParams}:{searchParams:Promise<{mess
  const perTrack=new Set<string>(),defaults=featured.filter(c=>{if(perTrack.has(c.track))return false;perTrack.add(c.track);return true;}).slice(0,6);
  const slides=content.slides.length?content.slides.flatMap(slug=>featured.filter(c=>c.slug===slug)):defaults;
  const [sessions,learning,materials]=view==="courses"?await Promise.all([Promise.all(enrolled.map(r=>getClassSessions(r.slug,r.batch))),learningFor(enrolled.map(r=>r.id)),Promise.all(enrolled.map(r=>getMaterials(r.slug,r.batch)))]):[[],[],[]] as const;
- const stats=[{label:"Enrolled courses",value:enrolled.length,view:"courses"},{label:"Applications",value:rows.length,view:"applications"},{label:"Verified payments",value:rows.filter(r=>r.payment_state==="paid").length,view:"applications"}] as const;
+ const stats=[{label:"Enrolled courses",value:enrolled.length,view:"courses"},{label:"Applications",value:rows.length,view:"applications"},{label:"Verified payments",value:rows.filter(r=>isPaidState(r.payment_state)).length,view:"applications"}] as const;
  return <Frame portalHeader={{role:"Student",path:studentUrl(view),signedIn:true}}><div className="wrap portal admin-shell student-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Student Portal</h1><p>My learning dashboard</p></div><PortalAccount email={user.email} path={studentUrl(view)}/></header>
   <div className="admin-layout">

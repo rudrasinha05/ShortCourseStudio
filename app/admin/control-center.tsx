@@ -121,7 +121,7 @@ export function ApplicantTools({id,slug,notes,record,eligible,amount,offline,ans
    <input type="hidden" name="slug" value={slug}/><input type="hidden" name="id" value={id}/>{hidden}
    <label>Verified offline payment reference<input name="reference" required maxLength={64}/></label>
    <label>Received amount (₹)<input type="number" name="amount" required min={1} step=".01" defaultValue={amount/100}/></label>
-   <p>Record only an independently verified payment. This does not collect money or grant class access.</p>
+   <p>Record only an independently verified payment. This does not collect money. Recording it accepts the application and grants class access.</p>
    <button className="btn secondary">Record verified offline payment</button>
   </form>}
   {eligible&&<form className="formpanel" action="/forms/admin/control/learning" method="post">

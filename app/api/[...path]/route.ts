@@ -1,9 +1,10 @@
 import {facultyIdentity} from "@/lib/faculty-auth";
 import {checkoutStatus,getBillingAddress} from "@/lib/billing";
+import {hasClassAccess} from "@/lib/class-sessions";
 import {audit,actorFor} from "@/lib/admin-controls";
 import {proposalDocument,requestIdentity} from "@/lib/portals";
 import { z } from "zod";
-import { cDayNumber,CRASH_SLUG } from "@/lib/courses";
+import { cDayNumber } from "@/lib/courses";
 import {cfg,db,getCourses,paymentMode,razorpay,authorizedAdmin,secureEqual,signature,getApplication,getOwnedApplication,gateway,markPaid,markRefunded,type Application} from "@/lib/enrollment";
 import { createApplication,saveCourse } from "@/lib/form-workflows";
 export const dynamic = "force-dynamic";
@@ -92,7 +93,7 @@ export async function POST(req:Request){
    if(!row)return fail("Application not found.",404);
    const day=!!cDayNumber(row.slug);
    const mode=day?null:paymentMode();
-   if(path==="/api/applications/status")return reply({id:row.id,paymentState:day?"not_required":row.payment_state,paymentMode:mode,slug:row.slug,...(row.slug===CRASH_SLUG?{enrolled:row.payment_state==="paid"&&row.review_state==="accepted"&&row.class_access===1}:{})});
+   if(path==="/api/applications/status")return reply({id:row.id,paymentState:day?"not_required":row.payment_state,paymentMode:mode,slug:row.slug,enrolled:!day&&hasClassAccess(row)});
    if(day)return fail("Use the application for the complete five-day course.",409);
    if(!mode)return fail("Online payment is not enabled.",503);
    if(row.payment_state==="paid"||row.payment_state==="test_paid")return reply({paymentState:row.payment_state});

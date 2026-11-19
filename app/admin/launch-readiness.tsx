@@ -12,8 +12,8 @@ export async function LaunchReadiness({courses}:{courses:Course[]}){
  const open=courses.filter(c=>!cDayNumber(c.slug)&&canApply(c));
  const batches=await Promise.all(open.map(async c=>({course:c,sessions:await getClassSessions(c.slug,c.batch)})));
  const rows=[
-  {title:"Razorpay checkout",state:mode==="live"?"Live keys configured":mode==="test"?"Test keys configured":"Not configured",detail:"Confirm a successful and a failed provider test before accepting real fees."},
-  {title:"Webhook delivery",state:"Verify with Razorpay",detail:"Send a test event to /api/payments/webhook. A private site can block the provider. Applicants can also check payment status directly."},
+  {title:"Razorpay checkout",state:mode==="live"?"Live keys configured":mode==="test"?"Test keys configured":"Not configured",detail:"Turn on automatic capture in Razorpay (Settings → Payment capture). Only captured payments enroll a student; authorized payments are refunded by Razorpay. Then confirm a successful and a failed test payment."},
+  {title:"Webhook delivery",state:"Verify with Razorpay",detail:"Subscribe /api/payments/webhook to payment.captured and refund.processed, then send a test event. A private site can block the provider. Applicants can also check payment status directly."},
   {title:"Open admissions",state:open.length+" open",detail:"The launch batch table below shows saved schedule, fee and joining-link availability. Confirm these with the instructor before launch.",link:adminTarget("enrollment-controls")},
   {title:"Support contact",state:content.contact?"Configured":"Not configured",detail:"Use a monitored organiser email for payment questions and corrections.",link:adminTarget("website-content")},
   {title:"Refund and cancellation",state:content.refund?"Published":"Not published",detail:"Write the approved refund and cancellation terms. They appear at /refund-policy and are linked from checkout.",link:adminTarget("website-content")},

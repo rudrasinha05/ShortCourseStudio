@@ -16,7 +16,7 @@ import {cDayNumber,CRASH_SLUG,isCShortCourse} from "@/lib/courses";
 import {getClassSessions} from "@/lib/class-sessions";
 import {Frame} from "@/app/ui";
 import {requestIdentity} from "@/lib/portals";
-import {canApply,db,getSiteControls,isAdminIdentity,getCourses,paymentAmount,paymentMode} from "@/lib/enrollment";
+import {canApply,db,getSiteControls,isAdminIdentity,isPaidState,getCourses,paymentAmount,paymentMode} from "@/lib/enrollment";
 import {listApplications,REVIEW_STATES,reviewLabels,type AppFilters} from "@/lib/form-workflows";
 
 export const dynamic="force-dynamic";
@@ -166,7 +166,7 @@ async function Applications({courses,selected:c,p}:{courses:Course[];selected:Co
  {rows.length>0&&<a className="btn secondary" href={"/forms/admin/export?"+query({filter,page:String(page),...filters})}>Download page as CSV</a>}
  <div className="application-list">{rows.map(r=><article key={r.id} className="app-record"><a className="textlink" href={adminUrl("students",{view:"roster",student:r.id})}>{r.name}</a><p>{r.email} · {r.college}</p><p>{courses.find(x=>x.slug===r.slug)?.title??r.slug} · {r.batch}</p><small>{r.id}</small>{!cDayNumber(r.slug)&&<p>Payment: {r.payment_state.replace("_"," ")}</p>}
  <form className="filter-form" action="/forms/admin/review" method="post"><input type="hidden" name="id" value={r.id}/><input type="hidden" name="slug" value={c.slug}/><ApplicationReturn values={returnFields}/><label>Review status<select name="review" defaultValue={r.review_state}>{REVIEW_STATES.map(s=><option key={s} value={s}>{reviewLabels[s]}</option>)}</select></label><button className="btn secondary">Update status</button></form>
- {r.review_state==="accepted"&&(r.slug!==CRASH_SLUG||r.payment_state==="paid")&&<form className="formpanel" action="/forms/admin/class-access" method="post"><input type="hidden" name="id" value={r.id}/><input type="hidden" name="slug" value={c.slug}/><ApplicationReturn values={returnFields}/><input type="hidden" name="grant" value={r.class_access?"no":"yes"}/><p>Class access: {r.class_access?"Granted":"Not granted"}</p><button className="btn secondary">{r.class_access?"Revoke class access":"Grant class access"}</button></form>}
+ {r.review_state==="accepted"&&(r.slug!==CRASH_SLUG||isPaidState(r.payment_state))&&<form className="formpanel" action="/forms/admin/class-access" method="post"><input type="hidden" name="id" value={r.id}/><input type="hidden" name="slug" value={c.slug}/><ApplicationReturn values={returnFields}/><input type="hidden" name="grant" value={r.class_access?"no":"yes"}/><p>Class access: {r.class_access?"Granted":"Not granted"}</p><button className="btn secondary">{r.class_access?"Revoke class access":"Grant class access"}</button></form>}
  <ApplicantTools returnFields={returnFields} id={r.id} slug={c.slug} notes={notes.filter(n=>n.application_id===r.id)} record={learning.find(l=>l.application_id===r.id)} amount={paymentAmount(r)} offline={r.payment_state==="unpaid"&&r.review_state!=="declined"&&!cDayNumber(r.slug)} answers={r.form_answers} eligible={r.review_state==="accepted"&&r.class_access===1&&(r.slug!==CRASH_SLUG||r.payment_state==="paid")}/>
  </article>)}</div>
  <div className="actions">{page>1&&<a className="btn secondary" href={link(page-1)}>Previous page</a>}{next&&<a className="btn secondary" href={link(page+1)}>Next page</a>}</div>

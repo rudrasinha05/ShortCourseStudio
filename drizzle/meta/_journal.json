@@ -176,6 +176,13 @@
       "when": 1794926806318,
       "tag": "0024_student_google_login",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1794926866318,
+      "tag": "0025_enroll_verified_payments",
+      "breakpoints": true
     }
   ]
 }

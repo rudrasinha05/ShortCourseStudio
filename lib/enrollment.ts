@@ -29,6 +29,15 @@ export function db(){if(!cfg.DB)throw new Error("Missing data binding");return c
 // Server settings are often pasted with a stray space or newline, which makes Razorpay reject Basic Auth.
 export const razorpay=()=>({keyId:cfg.RAZORPAY_KEY_ID?.trim()??"",keySecret:cfg.RAZORPAY_KEY_SECRET?.trim()??"",webhookSecret:cfg.RAZORPAY_WEBHOOK_SECRET?.trim()??""});
 export function paymentMode():"test"|"live"|null{const m=cfg.PAYMENTS_MODE?.trim(),k=razorpay();return (m==="test"||m==="live")&&k.keyId.startsWith("rzp_"+m+"_")&&k.keySecret&&k.webhookSecret?m:null}
+// Payment states that count as a verified fee. Test captures count only while the site runs in test mode,
+// so switching to live never turns a test transaction into real access.
+export const paidStates=():string[]=>paymentMode()==="test"?["paid","test_paid"]:["paid"];
+export const isPaidState=(state:string)=>paidStates().includes(state);
+// SQL list of the same states; the values are fixed literals, never user input.
+export const paidStatesSql=()=>paidStates().map(s=>"'"+s+"'").join(",");
+// SQL condition for an enrolled application. The C course also needs a verified fee, and a test
+// capture never counts outside test mode, for any course.
+export const enrolledSql=(alias="")=>`${alias}review_state='accepted' AND ${alias}class_access=1 AND (${alias}slug<>'${CRASH_SLUG}' OR ${alias}payment_state IN (${paidStatesSql()}))`+(paymentMode()==="test"?"":` AND ${alias}payment_state<>'test_paid'`);
 export async function getSiteControls(){
  return cfg.DB?(await db().prepare("SELECT intake_paused,announcement FROM site_controls WHERE id=1").first<{intake_paused:number;announcement:string}>()??{intake_paused:0,announcement:""}):{intake_paused:0,announcement:""};
 }
@@ -113,9 +122,10 @@ export async function markPaid(row:Application,paymentId:string){
  const mode=paymentMode();
  if(!mode||!row.order_id||row.payment_order_mode!==mode||!Number.isSafeInteger(row.amount)||row.amount<=0)return false;
  const next=mode==="test"?"test_paid":"paid";
- // Grant access only on the first verified live capture. Repeated callbacks
- // must not undo a later administrator revocation.
- const enroll=row.slug===CRASH_SLUG&&mode==="live"?1:0;
+ // A verified capture enrolls the student in every course, in test and live mode, unless the
+ // application was declined. Only the first capture grants access, so repeated callbacks
+ // cannot undo a later administrator revocation.
+ const enroll=1;
  const result=await db().prepare("UPDATE applications SET review_state=CASE WHEN ?=1 AND payment_state='unpaid' AND review_state<>'declined' THEN 'accepted' ELSE review_state END, class_access=CASE WHEN ?=1 AND payment_state='unpaid' AND review_state<>'declined' THEN 1 ELSE class_access END, payment_id=?, payment_state=? WHERE id=? AND order_id=? AND amount=? AND payment_order_mode=? AND ((payment_state='unpaid' AND payment_id IS NULL) OR (payment_state=? AND payment_id=?))").bind(enroll,enroll,paymentId,next,row.id,row.order_id,row.amount,mode,next,paymentId).run();
  return result.meta.changes===1;
 }

@@ -99,14 +99,15 @@ for(const mode of ["test","live"]){
   const row=await application(),live=mode==="live";
   assert.equal(row.slug,slug);
   assert.equal(row.payment_state,live?"paid":"test_paid");
-  assert.equal(row.review_state,live?"accepted":"submitted");
-  assert.equal(row.class_access,live?1:0);
+  // A verified capture enrolls the student in test and live mode.
+  assert.equal(row.review_state,"accepted");
+  assert.equal(row.class_access,1);
   const status=await(await post("/api/applications/status",ref)).json();
-  assert.equal(status.enrolled,live);
+  assert.equal(status.enrolled,true);
   const receipt=await(await request("/apply?ref="+id,{headers:{Cookie:"scs_application="+id+"."+token}})).text();
-  assert.equal(receipt.includes("Enrollment confirmed"),live);
-  assert.equal(receipt.includes(replay),live);
-  if(live){
+  assert.ok(receipt.includes("Enrollment confirmed"));
+  assert.ok(receipt.includes(replay));
+  {
    const revoke=await request("/forms/admin/class-access",{method:"POST",headers:{...admin,"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({id,slug,grant:"no"})});
    assert.match(revoke.headers.get("Location"),/access-saved/);
    assert.equal((await pushCapture()).status,200);
