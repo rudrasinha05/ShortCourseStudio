@@ -93,6 +93,27 @@ export async function rateFaculty(h:HeaderReader,action:string,subject="",limit=
  return !subject||await hit("subject:"+subject)<=limit;
 }
 
+// Accounts that signed up with a password and have not verified their email. An administrator can
+// confirm the person directly (for example by phone) and verify them, so faculty are not stuck when
+// no email provider is configured. Matching a faculty profile email alone never grants access.
+export type PendingFacultyAccount={id:string;username:string;email:string;first_name:string;last_name:string;phone:string|null;created_at:number;has_profile:number};
+export async function pendingFacultyAccounts(){
+ return (await db().prepare("SELECT a.id,a.username,a.email,a.first_name,a.last_name,a.phone,a.created_at,EXISTS (SELECT 1 FROM faculty_profiles f WHERE lower(f.email)=a.email AND f.active=1) AS has_profile FROM faculty_accounts a WHERE a.verified_at IS NULL ORDER BY a.created_at DESC LIMIT 100").all<PendingFacultyAccount>()).results;
+}
+export async function adminFacultyAccount(id:string,decision:string){
+ if(!/^[0-9a-f-]{36}$/.test(id))return "invalid";
+ const d=db();
+ if(decision==="verify"){
+  const [r]=await d.batch([
+   d.prepare("UPDATE faculty_accounts SET verified_at=? WHERE id=? AND verified_at IS NULL").bind(Date.now(),id),
+   d.prepare("DELETE FROM faculty_email_verifications WHERE account_id=?").bind(id),
+  ]);
+  return r.meta.changes?"account-verified":"invalid";
+ }
+ // Only an unverified sign-up can be removed; its sessions go with it (ON DELETE CASCADE).
+ if(decision==="remove")return (await d.prepare("DELETE FROM faculty_accounts WHERE id=? AND verified_at IS NULL").bind(id).run()).meta.changes?"account-removed":"invalid";
+ return "invalid";
+}
 export const verificationEmailAvailable=()=>Boolean(env.RESEND_API_KEY&&env.FACULTY_EMAIL_FROM);
 export async function sendFacultyVerification(account:Account,origin:string){
  if(!verificationEmailAvailable())return "email-unconfigured";

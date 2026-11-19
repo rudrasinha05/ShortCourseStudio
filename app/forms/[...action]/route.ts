@@ -1,4 +1,4 @@
-import {facultyIdentity} from "@/lib/faculty-auth";
+import {adminFacultyAccount,facultyIdentity} from "@/lib/faculty-auth";
 import {readAdminSchedule} from "@/lib/batch-schedule";
 import {checkoutUrl} from "@/lib/billing";
 import {saveReminderContact} from "@/lib/class-reminders";
@@ -66,7 +66,7 @@ export async function POST(req:Request){
  const apply=(error:string)=>move(redirectTo("/apply",{course:slug,error}));
  const admin=(message:string)=>move(adminTarget(path.startsWith("/forms/admin/")?({
   "/forms/admin/course":"course-management","/forms/admin/review":"applications","/forms/admin/class-access":"applications",
-  "/forms/admin/faculty":"faculty-directory","/forms/admin/faculty-active":"faculty-directory","/forms/admin/assignment":"assignments","/forms/admin/proposal":"faculty-proposals",
+  "/forms/admin/faculty":"faculty-directory","/forms/admin/faculty-account":"faculty-accounts","/forms/admin/faculty-active":"faculty-directory","/forms/admin/assignment":"assignments","/forms/admin/proposal":"faculty-proposals",
   "/forms/admin/control/faculty-profile":"faculty-directory","/forms/admin/control/proposal-revision":"faculty-proposals",
   "/forms/admin/sessions":"class-schedule","/forms/admin/banner":slug===CRASH_SLUG?"crash-banner":"course-banner",
   "/forms/admin/intake":"enrollment-controls","/forms/admin/site-controls":"site-controls",
@@ -129,6 +129,12 @@ export async function POST(req:Request){
    if(!outcome)return text("Not found.",404);
    if(scopes.length&&val("staff")==="yes")return move("/staff?message="+(outcome[0]?"saved":"invalid")+"#"+outcome[1]);
    return move(adminTarget(String(outcome[1]),{course:slug,controlMessage:outcome[0]?"saved":"invalid",...(outcome[1]==="applications"?applicantReturn:{})}));
+  }
+  if(path==="/forms/admin/faculty-account"){
+   if(!await authorizedAdmin(req))return text("Administrator sign-in is required.",403);
+   const message=await adminFacultyAccount(val("id"),val("decision"));
+   if(message!=="invalid")await audit(actorFor(req),message==="account-verified"?"verify faculty account":"remove unverified faculty account",val("id"));
+   return move(adminTarget("faculty-accounts",{course:slug,portalMessage:message}));
   }
   if(["/forms/admin/faculty","/forms/admin/faculty-active","/forms/admin/assignment","/forms/admin/proposal"].includes(path)){
    if(!await authorizedAdmin(req))return text("Administrator sign-in is required.",403);

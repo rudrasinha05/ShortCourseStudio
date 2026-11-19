@@ -57,7 +57,7 @@ export default async function Page({searchParams}:{searchParams:Promise<Params>}
  } as Record<string,{label:string;button:string}>)[view];
  const intakeCourse=explicitCourse&&explicitCourse.visibility==="published"&&!cDayNumber(explicitCourse.slug)?explicitCourse:undefined;
  const notice=p.message?messages[p.message]:p.portalMessage?facultyMessages[p.portalMessage]:p.intakeMessage?intakeMessages[p.intakeMessage]:p.controlMessage==="saved"?"Changes saved.":p.controlMessage==="invalid"?"Nothing was saved. Check the fields and try again.":undefined;
- const ok=["saved","reviewed","reviewed-refund","classes-saved","access-saved","banner-saved","faculty-added","faculty-updated","assignment-saved","proposal-reviewed","intake-saved","site-saved"].includes(p.message??p.portalMessage??p.intakeMessage??p.controlMessage??"");
+ const ok=["saved","reviewed","reviewed-refund","classes-saved","access-saved","banner-saved","faculty-added","faculty-updated","assignment-saved","proposal-reviewed","account-verified","account-removed","intake-saved","site-saved"].includes(p.message??p.portalMessage??p.intakeMessage??p.controlMessage??"");
  return <Frame portalHeader={{role:"Admin",path:"/admin",signedIn:true}}><div className="wrap portal admin-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Admin Portal</h1><p>Manage courses, students and the website from one place.</p></div><div className="admin-header-account"><PortalAccount email={user.email} path="/admin"/><a className="textlink" href="/admin/security">Admin security</a></div></header>
   <div className="admin-layout">
