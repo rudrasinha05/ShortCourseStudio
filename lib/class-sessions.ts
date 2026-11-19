@@ -1,4 +1,4 @@
-import {db,lookup,type Application} from "./enrollment";
+import {db,isPaidState,lookup,paidStatesSql,type Application} from "./enrollment";
 import {CRASH_SLUG} from "./courses";
 import {refPattern} from "./form-workflows";
 
@@ -31,10 +31,10 @@ export async function saveClassSessions(slug:string,batch:string,val:(key:string
 export async function setClassAccess(id:string,grant:string){
  if(!refPattern.test(id)||(grant!=="yes"&&grant!=="no"))return false;
  const value=grant==="yes"?1:0;
- const result=await db().prepare("UPDATE applications SET class_access=? WHERE id=? AND (?=0 OR (review_state='accepted' AND (slug<>? OR payment_state='paid')))").bind(value,id,value,CRASH_SLUG).run();
+ const result=await db().prepare("UPDATE applications SET class_access=? WHERE id=? AND (?=0 OR (review_state='accepted' AND (slug<>? OR payment_state IN ("+paidStatesSql()+"))))").bind(value,id,value,CRASH_SLUG).run();
  return result.meta.changes===1;
 }
-export const hasClassAccess=(row:Pick<Application,"review_state"|"class_access"|"slug"|"payment_state">)=>row.review_state==="accepted"&&row.class_access===1&&(row.slug!==CRASH_SLUG||row.payment_state==="paid");
+export const hasClassAccess=(row:Pick<Application,"review_state"|"class_access"|"slug"|"payment_state">)=>row.review_state==="accepted"&&row.class_access===1&&(row.slug!==CRASH_SLUG||isPaidState(row.payment_state))&&(row.payment_state!=="test_paid"||isPaidState("test_paid"));
 export function formatClassTime(s:string){
  return new Intl.DateTimeFormat("en-IN",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Kolkata"}).format(new Date(s+"+05:30"));
 }

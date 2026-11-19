@@ -14,7 +14,7 @@ import {ArrowRight,BookOpen,Compass,LayoutDashboard,LifeBuoy,ClipboardList,Heart
 import {Badge,Frame} from "@/app/ui";
 import {PortalAccount,PortalNotice,PortalSignIn} from "@/app/portal-ui";
 import {CourseSlideshow} from "./course-slideshow";
-import {canApply,getCourses,intakeStatus,publicCatalogue} from "@/lib/enrollment";
+import {canApply,getCourses,intakeStatus,isPaidState,publicCatalogue} from "@/lib/enrollment";
 import {getClassSessions,formatClassTime,hasClassAccess} from "@/lib/class-sessions";
 import {reviewLabels} from "@/lib/form-workflows";
 import {studentApplications} from "@/lib/portals";
@@ -24,7 +24,7 @@ export const dynamic="force-dynamic";
 export const metadata={title:"Student Portal",robots:{index:false,follow:false}};
 type Course=Awaited<ReturnType<typeof getCourses>>[number];
 const portalNotices:Record<string,string>={"reminders-saved":"Reminder preferences saved.","reminders-invalid":"Enter an Indian mobile number or include the country code.","support-saved":"Support request received.","support-invalid":"Could not submit. Check the details or see whether a request of this type is already open.",linked:"Application linked to your account.","preferences-saved":"Learning preferences saved.","preferences-invalid":"Could not save those preferences. Check your entries and try again.","not-linked":"Could not link that application. Check your reference, tracking code and signed-in email.",retry:"Could not complete the request. Please try again."};
-const paymentLabel=(state:string)=>state==="paid"?"Paid":state==="test_paid"?"Test payment":"Not paid";
+const paymentLabel=(state:string)=>state==="paid"?"Paid":state==="test_paid"?"Test payment":state==="refunded"?"Refunded":"Not paid";
 
 function Suggestions({id,title,description,courses,reasons,empty}:{id:string;title:string;description:string;courses:Course[];reasons?:Map<string,string[]>;empty?:string}){
  return <section id={id} className="portal-section"><h2>{title}</h2><p>{description}</p>
@@ -64,7 +64,7 @@ export default async function Student({searchParams}:{searchParams:Promise<{mess
  const perTrack=new Set<string>(),defaults=featured.filter(c=>{if(perTrack.has(c.track))return false;perTrack.add(c.track);return true;}).slice(0,6);
  const slides=content.slides.length?content.slides.flatMap(slug=>featured.filter(c=>c.slug===slug)):defaults;
  const [sessions,learning,materials]=view==="courses"?await Promise.all([Promise.all(enrolled.map(r=>getClassSessions(r.slug,r.batch))),learningFor(enrolled.map(r=>r.id)),Promise.all(enrolled.map(r=>getMaterials(r.slug,r.batch)))]):[[],[],[]] as const;
- const stats=[{label:"Enrolled courses",value:enrolled.length,view:"courses"},{label:"Applications",value:rows.length,view:"applications"},{label:"Verified payments",value:rows.filter(r=>r.payment_state==="paid").length,view:"applications"}] as const;
+ const stats=[{label:"Enrolled courses",value:enrolled.length,view:"courses"},{label:"Applications",value:rows.length,view:"applications"},{label:"Verified payments",value:rows.filter(r=>isPaidState(r.payment_state)).length,view:"applications"}] as const;
  return <Frame portalHeader={{role:"Student",path:studentUrl(view),signedIn:true}}><div className="wrap portal admin-shell student-shell">
   <header className="admin-hero"><div><p className="admin-kicker">Short Course Studio</p><h1>Student Portal</h1><p>My learning dashboard</p></div><PortalAccount email={user.email} path={studentUrl(view)}/></header>
   <div className="admin-layout">
@@ -102,7 +102,7 @@ export default async function Student({searchParams}:{searchParams:Promise<{mess
   </>}
   {view==="wishlist"&&<WishlistPanel courses={publicCourses.map(wishlistCourseSummary)} selectedSlug={selectedSlug}/>}
   {view==="applications"&&<section className="portal-section" id="applications"><h2>My applications</h2>
-   {rows.length>0&&<ul className="portal-checklist panel">{rows.map(r=><li key={r.id}><strong>{courseMap.get(r.slug)?.title??r.slug}</strong><span>{r.id} · {reviewLabels[r.review_state]??r.review_state} · {paymentLabel(r.payment_state)}</span><a className="textlink" href={"/apply?ref="+r.id}>Open application</a></li>)}</ul>}
+   {rows.length>0&&<ul className="portal-checklist panel">{rows.map(r=><li key={r.id}><strong>{courseMap.get(r.slug)?.title??r.slug}</strong><span>{r.id} · {reviewLabels[r.review_state]??r.review_state} · {paymentLabel(r.payment_state)}</span><a className="textlink" href={"/apply?ref="+r.id}>Open application</a>{r.payment_state==="unpaid"&&r.review_state!=="declined"&&!cDayNumber(r.slug)&&<a className="textlink" href={"/apply/billing?ref="+encodeURIComponent(r.id)}>Complete payment</a>}</li>)}</ul>}
    <details className="panel portal-panel portal-details"><summary>Link a previous application</summary><form className="formpanel" method="post" action="/forms/student/claim"><h3>Link an existing application</h3><p>Use your reference and tracking code. The application email must match your signed-in account.</p>
     <label>Application reference<input required name="id" maxLength={30} autoComplete="off"/></label>
     <label>Tracking code<input required name="code" type="password" minLength={64} maxLength={64} autoComplete="off"/></label><button className="btn primary">Link application</button>

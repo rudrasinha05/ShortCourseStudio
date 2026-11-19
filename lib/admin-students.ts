@@ -1,10 +1,8 @@
-import {db} from "./enrollment";
-import {CRASH_SLUG} from "./courses";
+import {db,enrolledSql} from "./enrollment";
 import {refPattern,type RecordRow} from "./form-workflows";
 import {readLearningPreferences} from "./learning-preferences";
 
 export const directoryPageSize=25;
-const enrolled=`review_state='accepted' AND class_access=1 AND (slug<>? OR payment_state='paid')`;
 type IdentityRow={id:string;name:string;email:string;college:string;created_at:string;form_answers:string;student_user_id:string|null};
 type DirectoryRow=IdentityRow&{applications:number;enrollments:number;course_title_slugs:string};
 type HistoryRow=RecordRow&{student_user_id:string|null};
@@ -23,8 +21,8 @@ export async function listStudents({search,course,status,page}:{search:string;co
   FROM applications
  ), groups AS (
   SELECT lower(trim(email)) AS contact,COUNT(*) AS applications,
-   SUM(CASE WHEN ${enrolled} THEN 1 ELSE 0 END) AS enrollments,
-   GROUP_CONCAT(DISTINCT CASE WHEN ${enrolled} THEN slug END) AS course_title_slugs
+   SUM(CASE WHEN ${enrolledSql()} THEN 1 ELSE 0 END) AS enrollments,
+   GROUP_CONCAT(DISTINCT CASE WHEN ${enrolledSql()} THEN slug END) AS course_title_slugs
   FROM applications GROUP BY lower(trim(email))
  ), matching AS (
   SELECT DISTINCT lower(trim(email)) AS contact FROM applications WHERE (?='' OR slug=?)
@@ -37,7 +35,7 @@ export async function listStudents({search,course,status,page}:{search:string;co
  )
  SELECT *,COUNT(*) OVER () AS total FROM filtered ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?`;
  const term=search.trim().toLowerCase();
- const result=await db().prepare(sql).bind(CRASH_SLUG,CRASH_SLUG,course,course,term,term,status,status,status,directoryPageSize,(page-1)*directoryPageSize).all<DirectoryRow&{total:number}>();
+ const result=await db().prepare(sql).bind(course,course,term,term,status,status,status,directoryPageSize,(page-1)*directoryPageSize).all<DirectoryRow&{total:number}>();
  return {rows:result.results,total:result.results[0]?.total??0};
 }
 

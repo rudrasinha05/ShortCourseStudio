@@ -27,6 +27,8 @@ export default async function Home({searchParams}:{searchParams:Promise<{signed_
  const student=!!wishlistStudentIdentity(requestHeaders);
  const signedOut=params?.signed_out==="1";
  const courses=publicCatalogue(all);
+ // Server component rendered per request (force-dynamic), so reading the clock here is safe.
+ // eslint-disable-next-line react-hooks/purity
  const now=Date.now();
  const featured=await getUpcomingBanners(courses,now,true);
  const slides=featured.slice(0,5);

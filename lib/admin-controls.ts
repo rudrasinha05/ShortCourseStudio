@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {db,getCourses,lookup} from "./enrollment";
+import {db,enrolledSql,getCourses,lookup,paidStatesSql,paymentAmount,type Application} from "./enrollment";
 import {PAISE,registrationSlug} from "./courses";
 
 export type Reader=(key:string)=>string;
@@ -11,8 +11,13 @@ export const contentSchema=z.object({
  brochure:https,faq:z.string().trim().max(1800),contact:z.union([z.literal(""),z.string().trim().email().max(150)]),
  slides:z.array(z.string().regex(auditKey)).max(6),recommendations:z.array(z.string().regex(auditKey)).max(12),
  tagline:z.string().trim().max(90),studioLogo:https,instituteLogo:https,cta:z.string().trim().max(40),
+ // Added later: defaults keep previously saved content valid.
+ phone:z.string().trim().max(30).refine(s=>!s||/^\+?[0-9][0-9 -]{6,28}$/.test(s)).default(""),
+ address:z.string().trim().max(300).default(""),
+ terms:z.string().trim().max(5000).default(""),
+ refund:z.string().trim().max(5000).default(""),
 });
-const emptyContent={headline:"",intro:"",catalogue:"",brochure:"",faq:"",contact:"",slides:[],recommendations:[],tagline:"",studioLogo:"",instituteLogo:"",cta:""};
+const emptyContent={headline:"",intro:"",catalogue:"",brochure:"",faq:"",contact:"",slides:[],recommendations:[],tagline:"",studioLogo:"",instituteLogo:"",cta:"",phone:"",address:"",terms:"",refund:""};
 const noticesSchema=z.object({receipt:z.string().trim().max(500),accepted:z.string().trim().max(500),declined:z.string().trim().max(500),classReminder:z.string().trim().max(500)});
 const emptyNotices={receipt:"",accepted:"",declined:"",classReminder:""};
 export type FormField={key:string;label:string;required:boolean};
@@ -98,21 +103,21 @@ export async function addApplicantNote(actor:string,id:string,raw:string){
 export async function recordLearning(actor:string,val:Reader){
  const id=val("id"),raw=val("score"),result=val("result"),attendance=[1,2,3,4,5].filter(i=>val("present"+i)==="yes");
  if(!ref.test(id)||!["pending","passed","not_passed"].includes(result)||raw&&!/^\d{1,3}$/.test(raw)||Number(raw)>100)return false;
- const d=db();const r=await d.prepare("INSERT INTO learning_records(application_id,attendance,score,result) SELECT id,?,?,? FROM applications WHERE id=? AND review_state='accepted' AND class_access=1 AND (slug<>'c-by-horesh-sir' OR payment_state='paid') ON CONFLICT(application_id) DO UPDATE SET attendance=excluded.attendance,score=excluded.score,result=excluded.result WHERE learning_records.certificate_id IS NULL OR excluded.result='passed'").bind(JSON.stringify(attendance),raw?Number(raw):null,result,id).run();
+ const d=db();const r=await d.prepare("INSERT INTO learning_records(application_id,attendance,score,result) SELECT id,?,?,? FROM applications WHERE id=? AND "+enrolledSql()+" ON CONFLICT(application_id) DO UPDATE SET attendance=excluded.attendance,score=excluded.score,result=excluded.result WHERE learning_records.certificate_id IS NULL OR excluded.result='passed'").bind(JSON.stringify(attendance),raw?Number(raw):null,result,id).run();
  if(r.meta.changes)await audit(actor,"record attendance and result",id);
  return !!r.meta.changes;
 }
 export async function certificateAction(actor:string,id:string,action:string){
  if(!ref.test(id)||!["issue","revoke"].includes(action))return false;
  const d=db();
- const a=await d.prepare("SELECT slug,name FROM applications WHERE id=? AND review_state='accepted' AND class_access=1 AND (slug<>'c-by-horesh-sir' OR payment_state='paid')").bind(id).first<{slug:string;name:string}>();
+ const a=await d.prepare("SELECT slug,name FROM applications WHERE id=? AND "+enrolledSql()).bind(id).first<{slug:string;name:string}>();
  let r;
  if(action==="revoke")r=await d.prepare("UPDATE learning_records SET certificate_id=NULL,issued_at=NULL,issued_name=NULL,issued_course=NULL WHERE application_id=? AND certificate_id IS NOT NULL").bind(id).run();
  else{
   if(!a)return false;
   const c=await lookup(a.slug);
   const cert="CERT-"+crypto.randomUUID().replace(/-/g,"").slice(0,24).toUpperCase();
-  r=await d.prepare("UPDATE learning_records SET certificate_id=?,issued_at=?,issued_name=?,issued_course=? WHERE application_id=? AND result='passed' AND certificate_id IS NULL AND EXISTS (SELECT 1 FROM applications a WHERE a.id=? AND a.review_state='accepted' AND a.class_access=1 AND (a.slug<>'c-by-horesh-sir' OR a.payment_state='paid'))").bind(cert,iso(),a.name,c?.title??a.slug,id,id).run();
+  r=await d.prepare("UPDATE learning_records SET certificate_id=?,issued_at=?,issued_name=?,issued_course=? WHERE application_id=? AND result='passed' AND certificate_id IS NULL AND EXISTS (SELECT 1 FROM applications a WHERE a.id=? AND "+enrolledSql("a.")+")").bind(cert,iso(),a.name,c?.title??a.slug,id,id).run();
  }
  if(r.meta.changes)await audit(actor,action+" certificate",id);
  return !!r.meta.changes;
@@ -175,8 +180,14 @@ export async function recordOfflinePayment(actor:string,id:string,reference:stri
  if(!ref.test(id)||!(/^[A-Za-z0-9._/-]{3,64}$/).test(reference)||!/^\d{1,6}(\.\d{1,2})?$/.test(raw))return false;
  const d=db(),payment="offline:"+reference,amount=Math.round(Number(raw)*100);
  if(amount<100)return false;
- const r=await d.prepare("UPDATE applications SET payment_state='paid',payment_id=? WHERE id=? AND order_id IS NULL AND payment_state='unpaid' AND review_state<>'declined' AND amount=? AND NOT EXISTS (SELECT 1 FROM applications WHERE payment_id=?)").bind(payment,id,amount,payment).run();
- if(r.meta.changes)await audit(actor,"record verified offline payment",id);
+ const row=await d.prepare("SELECT * FROM applications WHERE id=?").bind(id).first<Application>();
+ // The fee owed may differ from the stored amount for C pre-applications made while the course was free.
+ if(!row||paymentAmount(row)!==amount)return false;
+ // An unused Razorpay order does not block a verified offline payment. A later online capture
+ // for that order cannot mark it paid again, and the webhook logs it for a refund.
+ // A verified fee enrolls the student, the same as a verified online capture.
+ const r=await d.prepare("UPDATE applications SET payment_state='paid',payment_id=?,amount=?,review_state='accepted',class_access=1 WHERE id=? AND payment_state='unpaid' AND payment_id IS NULL AND review_state<>'declined' AND amount=? AND NOT EXISTS (SELECT 1 FROM applications WHERE payment_id=?)").bind(payment,amount,id,row.amount,payment).run();
+ if(r.meta.changes)await audit(actor,row.order_id?"record verified offline payment (online order "+row.order_id+" left unused)":"record verified offline payment",id);
  return !!r.meta.changes;
 }
 
@@ -190,8 +201,8 @@ export async function updateFacultyProfile(actor:string,val:Reader){
 export async function batchReports(){
  return (await db().prepare(`SELECT slug,batch,COUNT(*) AS applications,
  SUM(CASE WHEN review_state='accepted' THEN 1 ELSE 0 END) AS accepted,
- SUM(CASE WHEN payment_state='paid' THEN amount ELSE 0 END) AS verified,
- SUM(CASE WHEN class_access=1 AND review_state='accepted' AND (slug<>'c-by-horesh-sir' OR payment_state='paid') THEN 1 ELSE 0 END) AS enrolled
+ SUM(CASE WHEN payment_state IN (${paidStatesSql()}) THEN amount ELSE 0 END) AS verified,
+ SUM(CASE WHEN ${enrolledSql()} THEN 1 ELSE 0 END) AS enrolled
  FROM applications GROUP BY slug,batch ORDER BY slug,batch LIMIT 200`).all<{slug:string;batch:string;applications:number;accepted:number;verified:number;enrolled:number}>()).results;
 }
 export async function markProposalRevision(actor:string,id:string,raw:string){

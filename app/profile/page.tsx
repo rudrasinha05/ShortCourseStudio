@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {hasStudentGoogle,studentGoogleConfigured} from "@/lib/student-google";
 import {GoogleSignInMark} from "@/app/google-sign-in";
 import {ownerAuthHeader,studentContactHeader} from "@/lib/portal-session";
@@ -20,7 +21,7 @@ export default async function Profile({searchParams}:{searchParams:Promise<{phot
  const google=contactOnly&&user.userId.startsWith("student:")&&studentGoogleConfigured();
  const googleLinked=google?await hasStudentGoogle(user.userId.slice(8)):false;
  const googleMessage=p.google&&Object.hasOwn(googleMessages,p.google)?googleMessages[p.google]:"";
- return <Frame><section className="wrap profile-page"><a className="back textlink profile-home-link" href="/"><ArrowLeft size={16} aria-hidden="true"/> Back to homepage</a><span className="eyebrow">MY ACCOUNT</span><h1>My profile</h1><p>Your account, profile photo and learning workspaces.</p>
+ return <Frame><section className="wrap profile-page"><Link className="back textlink profile-home-link" href="/"><ArrowLeft size={16} aria-hidden="true"/> Back to homepage</Link><span className="eyebrow">MY ACCOUNT</span><h1>My profile</h1><p>Your account, profile photo and learning workspaces.</p>
  <div className="profile-grid"><section className="panel profile-card"><ProfileAvatar name={user.displayName}/><h2>{user.fullName??"Your account"}</h2><p>{user.email}</p><span className="badge">{h.get(ownerAuthHeader)?"Administrator account":"Short Course Studio account"}</span><PhotoEditor/>{["saved","removed"].includes(p.photo??"")&&<p role="status">Profile photo {p.photo}.</p>}</section>
  <div><section className="panel profile-card"><h2>Account details</h2><dl className="receipt-details"><dt>Name</dt><dd>{user.fullName??"Not provided by your sign-in account"}</dd><dt>Email</dt><dd>{user.email}</dd>{faculty&&<><dt>Department</dt><dd>{faculty.department}</dd><dt>Designation</dt><dd>{faculty.designation}</dd></>}</dl><p>{contactOnly?"The email shown here is your application contact address. Sign in with your username.":"Your name and email come from your sign-in account. Faculty details are managed by the administrator."}</p></section>
  <section className="panel profile-card"><h2>Your workspaces</h2><div className="profile-links"><a href="/student">Student dashboard →</a><a href="/student?view=applications">My applications & payments →</a>{faculty&&<a href="/faculty">Faculty teaching workspace →</a>}{staff&&<a href="/staff">Staff workspace →</a>}{!contactOnly&&isAdminIdentity(h)&&<a href="/admin">Admin portal →</a>}</div></section>

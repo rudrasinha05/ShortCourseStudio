@@ -1,6 +1,6 @@
 import {z} from "zod";
-import {cfg,db,getCourses} from "./enrollment";
-import {TRACKS,cDayNumber,CRASH_SLUG} from "./courses";
+import {cfg,db,enrolledSql,getCourses} from "./enrollment";
+import {TRACKS,cDayNumber} from "./courses";
 import {codePattern,refPattern} from "./form-workflows";
 import {getApplication} from "./enrollment";
 
@@ -156,7 +156,7 @@ export async function adminDashboard(){
   d.prepare("SELECT id,email,name,department,designation,qualification,bio,active FROM faculty_profiles ORDER BY active DESC,name,email"),
   d.prepare("SELECT slug,batch,faculty_id,earned,paid FROM faculty_assignments ORDER BY slug,batch"),
   d.prepare("SELECT * FROM faculty_proposals ORDER BY CASE WHEN status='submitted' THEN 0 ELSE 1 END,created_at DESC"),
-  d.prepare("SELECT COUNT(DISTINCT COALESCE(student_user_id,lower(email))) AS students,COUNT(*) AS applications,COALESCE(SUM(CASE WHEN review_state='accepted' AND class_access=1 AND (slug<>? OR payment_state='paid') THEN 1 ELSE 0 END),0) AS enrolled FROM applications").bind(CRASH_SLUG),
+  d.prepare("SELECT COUNT(DISTINCT COALESCE(student_user_id,lower(email))) AS students,COUNT(*) AS applications,COALESCE(SUM(CASE WHEN "+enrolledSql()+" THEN 1 ELSE 0 END),0) AS enrolled FROM applications"),
   d.prepare("SELECT slug,batch,day FROM faculty_progress ORDER BY day")
  ]);
  return {faculty:faculty.results as Faculty[],assignments:assignments.results as Assignment[],proposals:proposals.results as Proposal[],students:students.results[0] as {students:number;applications:number;enrolled:number},progress:progress.results as Progress[]};

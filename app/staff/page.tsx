@@ -3,7 +3,8 @@ import {Frame} from "@/app/ui";
 import {PortalAccessDenied,PortalAccount,PortalSignIn} from "@/app/portal-ui";
 import {SupportPanel} from "@/app/admin/staff-panel";
 import {batchReports,learningFor,priceText} from "@/lib/admin-controls";
-import {getCourses} from "@/lib/enrollment";
+import {getCourses,paymentAmount} from "@/lib/enrollment";
+import {cDayNumber} from "@/lib/courses";
 import {listApplications,reviewLabels,REVIEW_STATES} from "@/lib/form-workflows";
 import {requestIdentity} from "@/lib/portals";
 import {staffRole} from "@/lib/staff";
@@ -26,7 +27,7 @@ export default async function Staff({searchParams}:{searchParams:Promise<{q?:str
    <p>Showing up to 50 matching records.</p>
    <ul className="panel portal-checklist">{rows.map(r=>{const record=learning.find(item=>item.application_id===r.id);const attendance:number[]=record?JSON.parse(record.attendance):[];return <li key={r.id}><strong>{role==="finance"?r.id:r.name} · {courseMap.get(r.slug)??r.slug} · {r.batch}</strong><span>{r.id} · {reviewLabels[r.review_state]??r.review_state}</span>
    {role==="admissions"&&<form className="formpanel" method="post" action="/forms/admin/review"><input type="hidden" name="staff" value="yes"/><input type="hidden" name="id" value={r.id}/><label>Review status<select name="review" defaultValue={r.review_state}>{REVIEW_STATES.map(s=><option value={s} key={s}>{reviewLabels[s]}</option>)}</select></label><button className="btn secondary">Update review</button></form>}
-   {role==="finance"&&!r.order_id&&r.amount>0&&r.review_state!=="declined"&&<form className="formpanel" action="/forms/admin/control/offline-payment" method="post"><input type="hidden" name="staff" value="yes"/><input type="hidden" name="id" value={r.id}/><label>Independently verified reference<input name="reference" maxLength={64} required/></label><label>Received amount (₹)<input type="number" min={1} step=".01" name="amount" defaultValue={r.amount/100} required/></label><button className="btn secondary">Record offline payment</button></form>}
+   {role==="finance"&&r.payment_state==="unpaid"&&paymentAmount(r)>0&&r.review_state!=="declined"&&!cDayNumber(r.slug)&&<form className="formpanel" action="/forms/admin/control/offline-payment" method="post"><input type="hidden" name="staff" value="yes"/><input type="hidden" name="id" value={r.id}/><label>Independently verified reference<input name="reference" maxLength={64} required/></label><label>Received amount (₹)<input type="number" min={1} step=".01" name="amount" defaultValue={paymentAmount(r)/100} required/></label><button className="btn secondary">Record offline payment</button></form>}
    {role==="academic"&&!!r.class_access&&<form className="formpanel" action="/forms/admin/control/learning" method="post"><input type="hidden" name="staff" value="yes"/><input type="hidden" name="id" value={r.id}/><label>Score<input type="number" min={0} max={100} name="score" defaultValue={record?.score??""}/></label><label>Result<select name="result" defaultValue={record?.result??"pending"}><option value="pending">Pending</option><option value="passed">Passed</option><option value="not_passed">Not passed</option></select></label>{[1,2,3,4,5].map(day=><label key={day} className="check"><input type="checkbox" name={"present"+day} value="yes" defaultChecked={attendance.includes(day)}/> Day {day} attended</label>)}<button className="btn secondary">Save attendance and result</button></form>}
    </li>;})}</ul>
   </>}

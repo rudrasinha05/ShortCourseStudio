@@ -1,5 +1,5 @@
 import {readBatchStart} from "./batch-schedule";
-import {cfg,db,digest,getCourses,secureEqual} from "./enrollment";
+import {cfg,db,digest,enrolledSql,getCourses,secureEqual} from "./enrollment";
 import {CRASH_SLUG,C_LAUNCH_START,C_LAUNCH_SCHEDULE} from "./courses";
 import {formatClassTime} from "./class-sessions";
 
@@ -57,12 +57,12 @@ async function recipients(session:Session,limit:number,offset:number){
  CASE WHEN r.user_id IS NOT NULL THEN CASE WHEN r.enabled=1 THEN '+'||r.whatsapp ELSE '' END
  WHEN json_valid(a.form_answers) AND json_extract(a.form_answers,'$.details.whatsappReminders')=1 THEN COALESCE(json_extract(a.form_answers,'$.details.phone'),'') ELSE '' END AS phone
  FROM applications a LEFT JOIN reminder_contacts r ON r.user_id=a.student_user_id
- WHERE a.slug=? AND a.batch=? AND a.review_state='accepted' AND a.class_access=1 AND (a.slug<>? OR a.payment_state='paid')
+ WHERE a.slug=? AND a.batch=? AND ${enrolledSql("a.")}
  UNION ALL
  SELECT f.id AS id,'faculty' AS role,f.email AS email,COALESCE(CASE WHEN r.enabled=1 THEN '+'||r.whatsapp ELSE '' END,'') AS phone
  FROM faculty_assignments x JOIN faculty_profiles f ON f.id=x.faculty_id AND f.active=1 LEFT JOIN reminder_contacts r ON r.user_id='faculty:'||f.id
  WHERE x.slug=? AND x.batch=?
- ORDER BY role,id LIMIT ? OFFSET ?`).bind(session.slug,session.batch,CRASH_SLUG,session.slug,session.batch,limit,offset).all<Recipient>();
+ ORDER BY role,id LIMIT ? OFFSET ?`).bind(session.slug,session.batch,session.slug,session.batch,limit,offset).all<Recipient>();
  return result.results;
 }
 export async function reminderPreview(slug:string,batch:string){

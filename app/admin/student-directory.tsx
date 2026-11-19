@@ -13,7 +13,7 @@ export type DirectoryParams={student?:string;studentQ?:string;studentCourse?:str
 const directory=(params:Record<string,string>={})=>adminUrl("students",{view:"roster",...params});
 const shortDate=(date:string)=>new Intl.DateTimeFormat("en-IN",{day:"numeric",month:"short",year:"numeric",timeZone:"Asia/Kolkata"}).format(new Date(date));
 const yearLabel=(year:string)=>year==="graduate"?"Graduated":year==="other"?"Other":year?"Year "+year:"Not provided";
-const paymentLabel=(state:string)=>state==="paid"?"Paid":state==="test_paid"?"Test payment":"Not paid";
+const paymentLabel=(state:string)=>state==="paid"?"Paid":state==="test_paid"?"Test payment":state==="refunded"?"Refunded":"Not paid";
 const displayDate=(date:string)=>Number.isFinite(Date.parse(date))?shortDate(date):"Not recorded";
 
 export async function StudentDirectory({courses,params}:{courses:Course[];params:DirectoryParams}){
