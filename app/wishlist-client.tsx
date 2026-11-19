@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import {useEffect,useSyncExternalStore} from "react";
 import {ArrowRight,Heart} from "lucide-react";
@@ -108,6 +109,6 @@ export function WishlistPanel({courses,selectedSlug}:{courses:WishlistCourse[];s
    {hasBrowserSaves&&<button className="btn secondary" type="button" disabled={importing||Boolean(pending.size)} onClick={()=>void importBrowser()}>{importing?"Copying…":"Import previous browser saves"}</button>}
   </div>
   {selected&&!saved.includes(selected.slug)&&<div className="panel wishlist-item"><div><span className="eyebrow">Selected course</span><h3><a href={selected.href}>{selected.title}</a></h3><p>Use Wishlist to save this course to your account.</p></div><WishlistButton student slug={selected.slug} title={selected.title}/></div>}
-  {available.length?<ul className="wishlist-items">{available.map(c=><li className="panel wishlist-item" key={c.slug}><div><span className="eyebrow">{c.track}</span><h3><a href={c.href}>{c.title}</a></h3><p>{c.status}</p></div><WishlistButton student slug={c.slug} title={c.title}/></li>)}</ul>:<div className="panel wishlist-empty"><Heart size={28} aria-hidden="true"/><h2>No saved courses yet</h2><p>Tap Wishlist on a course you want to come back to.</p><a className="btn primary" href="/#courses">Explore courses <ArrowRight size={16} aria-hidden="true"/></a></div>}
+  {available.length?<ul className="wishlist-items">{available.map(c=><li className="panel wishlist-item" key={c.slug}><div><span className="eyebrow">{c.track}</span><h3><a href={c.href}>{c.title}</a></h3><p>{c.status}</p></div><WishlistButton student slug={c.slug} title={c.title}/></li>)}</ul>:<div className="panel wishlist-empty"><Heart size={28} aria-hidden="true"/><h2>No saved courses yet</h2><p>Tap Wishlist on a course you want to come back to.</p><Link className="btn primary" href="/#courses">Explore courses <ArrowRight size={16} aria-hidden="true"/></Link></div>}
  </div>;
 }

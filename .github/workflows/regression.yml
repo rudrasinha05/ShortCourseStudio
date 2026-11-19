@@ -20,5 +20,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm run install:ci
+      - run: npm run lint
       - run: npm run build
       - run: node --test --test-concurrency=1 tests/*.mjs

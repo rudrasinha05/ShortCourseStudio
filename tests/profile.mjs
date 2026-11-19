@@ -15,7 +15,7 @@ try{
  const profileResponse=await req('/profile');
  assert.match(profileResponse.headers.get('cache-control')??'',/no-store/);
  const profile=await profileResponse.text();assert.ok(profile.includes('My profile'));assert.ok(profile.includes('Upload profile photo'));assert.ok(!profile.split('<main')[1].split('</main>')[0].includes('href="/admin"'));
- assert.match(profile,/<a[^>]*class="back textlink profile-home-link"[^>]*href="\/"/);
+ assert.match(profile,/<a(?=[^>]*class="back textlink profile-home-link")(?=[^>]*href="\/")[^>]*>/);
  const owner=await (await req('/profile',actor('owner','owner@example.invalid'))).text();assert.ok(owner.includes('href="/admin"'));
  const nav=profile.split('<nav aria-label="Main">')[1].split('</nav>')[0];assert.ok(!nav.includes('Student Portal'));assert.ok(!nav.includes('Faculty Portal'));assert.ok(nav.indexOf('/help')<nav.indexOf('/profile'));assert.ok(nav.includes('Open my profile'));
  const visitorHome=await req('/',{});assert.equal(visitorHome.status,200);assert.equal(visitorHome.headers.get('location'),null);

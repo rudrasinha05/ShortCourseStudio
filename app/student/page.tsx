@@ -24,7 +24,7 @@ export const dynamic="force-dynamic";
 export const metadata={title:"Student Portal",robots:{index:false,follow:false}};
 type Course=Awaited<ReturnType<typeof getCourses>>[number];
 const portalNotices:Record<string,string>={"reminders-saved":"Reminder preferences saved.","reminders-invalid":"Enter an Indian mobile number or include the country code.","support-saved":"Support request received.","support-invalid":"Could not submit. Check the details or see whether a request of this type is already open.",linked:"Application linked to your account.","preferences-saved":"Learning preferences saved.","preferences-invalid":"Could not save those preferences. Check your entries and try again.","not-linked":"Could not link that application. Check your reference, tracking code and signed-in email.",retry:"Could not complete the request. Please try again."};
-const paymentLabel=(state:string)=>state==="paid"?"Paid":state==="test_paid"?"Test payment":"Not paid";
+const paymentLabel=(state:string)=>state==="paid"?"Paid":state==="test_paid"?"Test payment":state==="refunded"?"Refunded":"Not paid";
 
 function Suggestions({id,title,description,courses,reasons,empty}:{id:string;title:string;description:string;courses:Course[];reasons?:Map<string,string[]>;empty?:string}){
  return <section id={id} className="portal-section"><h2>{title}</h2><p>{description}</p>

@@ -65,7 +65,10 @@ export async function ControlCenter({courses,selected,view}:{courses:Course[];se
     <input type="hidden" name="slug" value={c.slug}/>
     <div className="portal-fields"><Field name="headline" label="Homepage headline when no batch banner is featured" value={content.headline}/><Field name="catalogue" label="Catalogue title" value={content.catalogue}/><Field name="tagline" label="Header tagline" value={content.tagline}/><Field name="cta" label="Featured catalogue application button" value={content.cta} max={40}/>
     <Field name="studioLogo" label="Studio logo HTTPS URL" value={content.studioLogo} max={1200}/><Field name="instituteLogo" label="GL Bajaj logo HTTPS URL" value={content.instituteLogo} max={1200}/>
-    <Field name="brochure" label="Brochure HTTPS URL" value={content.brochure} max={1200}/><Field name="contact" label="Support email" value={content.contact} max={150}/></div>
+    <Field name="brochure" label="Brochure HTTPS URL" value={content.brochure} max={1200}/><Field name="contact" label="Support email" value={content.contact} max={150}/><Field name="phone" label="Support phone (shown on Contact us)" value={content.phone} max={30}/></div>
+    <label>Organiser postal address (shown on Contact us)<textarea name="address" maxLength={300} defaultValue={content.address}/></label>
+    <label>Terms &amp; conditions (shown at /terms; blank lines start new paragraphs)<textarea name="terms" maxLength={5000} defaultValue={content.terms}/></label>
+    <label>Cancellation &amp; refund policy (shown at /refund-policy; required before accepting fees)<textarea name="refund" maxLength={5000} defaultValue={content.refund}/></label>
     <label>Homepage introduction<textarea name="intro" maxLength={450} defaultValue={content.intro}/></label>
     <label>FAQ and help text<textarea name="faq" maxLength={1800} defaultValue={content.faq}/></label>
     <label>Student slideshow course IDs (up to 6, in order)<textarea name="slides" defaultValue={content.slides.join("\n")}/></label>

@@ -323,7 +323,7 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 
 /* Site directory and informational pages */
 .site-footer{border-top:1px solid var(--line);background:#eff5fb}
-.footer-directory{display:grid;grid-template-columns:minmax(210px,1.55fr) repeat(3,minmax(115px,1fr));gap:20px 24px;padding-block:27px 18px;color:var(--deep)}
+.footer-directory{display:grid;grid-template-columns:minmax(210px,1.55fr) repeat(4,minmax(115px,1fr));gap:20px 24px;padding-block:27px 18px;color:var(--deep)}
 .footer-identity>strong{font-size:19px}
 .footer-identity p{margin-top:4px;font-size:13px;line-height:1.45}
 .footer-links{display:grid;gap:5px;align-content:start}
@@ -334,7 +334,7 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 .info-page .panel h2{margin-bottom:3px}
 .info-page .info-preline{white-space:pre-line}
 .info-page #sign-in{scroll-margin-top:16px}
-@media(max-width:760px){.footer-directory{grid-template-columns:repeat(3,minmax(0,1fr))}.footer-identity{grid-column:1/-1}}
+@media(max-width:760px){.footer-directory{grid-template-columns:repeat(2,minmax(0,1fr))}.footer-identity{grid-column:1/-1}}
 @media(max-width:470px){.footer-directory{grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}.footer-links a{min-height:28px}}
 
 /* Homepage course posters */
@@ -651,3 +651,12 @@ a.portal-login-help{display:inline-flex}
  .wishlist-item{flex-wrap:wrap;gap:.75rem}
  .checkout-steps li{flex-wrap:wrap;line-height:1.2}
 }
+
+/* Contact and policy pages */
+.contact-details{display:grid;gap:12px;margin:0}
+.contact-details div{display:grid;grid-template-columns:minmax(80px,120px) 1fr;gap:12px;align-items:baseline}
+.contact-details dt{font-weight:700}
+.contact-details dd{margin:0;overflow-wrap:anywhere}
+.contact-address,.policy-paragraph{white-space:pre-line}
+.checkout-terms{font-size:13px}
+@media(max-width:470px){.contact-details div{grid-template-columns:1fr;gap:2px}}

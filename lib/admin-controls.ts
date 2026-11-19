@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {db,getCourses,lookup} from "./enrollment";
+import {db,getCourses,lookup,paymentAmount,type Application} from "./enrollment";
 import {PAISE,registrationSlug} from "./courses";
 
 export type Reader=(key:string)=>string;
@@ -11,8 +11,13 @@ export const contentSchema=z.object({
  brochure:https,faq:z.string().trim().max(1800),contact:z.union([z.literal(""),z.string().trim().email().max(150)]),
  slides:z.array(z.string().regex(auditKey)).max(6),recommendations:z.array(z.string().regex(auditKey)).max(12),
  tagline:z.string().trim().max(90),studioLogo:https,instituteLogo:https,cta:z.string().trim().max(40),
+ // Added later: defaults keep previously saved content valid.
+ phone:z.string().trim().max(30).refine(s=>!s||/^\+?[0-9][0-9 -]{6,28}$/.test(s)).default(""),
+ address:z.string().trim().max(300).default(""),
+ terms:z.string().trim().max(5000).default(""),
+ refund:z.string().trim().max(5000).default(""),
 });
-const emptyContent={headline:"",intro:"",catalogue:"",brochure:"",faq:"",contact:"",slides:[],recommendations:[],tagline:"",studioLogo:"",instituteLogo:"",cta:""};
+const emptyContent={headline:"",intro:"",catalogue:"",brochure:"",faq:"",contact:"",slides:[],recommendations:[],tagline:"",studioLogo:"",instituteLogo:"",cta:"",phone:"",address:"",terms:"",refund:""};
 const noticesSchema=z.object({receipt:z.string().trim().max(500),accepted:z.string().trim().max(500),declined:z.string().trim().max(500),classReminder:z.string().trim().max(500)});
 const emptyNotices={receipt:"",accepted:"",declined:"",classReminder:""};
 export type FormField={key:string;label:string;required:boolean};
@@ -175,8 +180,13 @@ export async function recordOfflinePayment(actor:string,id:string,reference:stri
  if(!ref.test(id)||!(/^[A-Za-z0-9._/-]{3,64}$/).test(reference)||!/^\d{1,6}(\.\d{1,2})?$/.test(raw))return false;
  const d=db(),payment="offline:"+reference,amount=Math.round(Number(raw)*100);
  if(amount<100)return false;
- const r=await d.prepare("UPDATE applications SET payment_state='paid',payment_id=? WHERE id=? AND order_id IS NULL AND payment_state='unpaid' AND review_state<>'declined' AND amount=? AND NOT EXISTS (SELECT 1 FROM applications WHERE payment_id=?)").bind(payment,id,amount,payment).run();
- if(r.meta.changes)await audit(actor,"record verified offline payment",id);
+ const row=await d.prepare("SELECT * FROM applications WHERE id=?").bind(id).first<Application>();
+ // The fee owed may differ from the stored amount for C pre-applications made while the course was free.
+ if(!row||paymentAmount(row)!==amount)return false;
+ // An unused Razorpay order does not block a verified offline payment. A later online capture
+ // for that order cannot mark it paid again, and the webhook logs it for a refund.
+ const r=await d.prepare("UPDATE applications SET payment_state='paid',payment_id=?,amount=? WHERE id=? AND payment_state='unpaid' AND payment_id IS NULL AND review_state<>'declined' AND amount=? AND NOT EXISTS (SELECT 1 FROM applications WHERE payment_id=?)").bind(payment,amount,id,row.amount,payment).run();
+ if(r.meta.changes)await audit(actor,row.order_id?"record verified offline payment (online order "+row.order_id+" left unused)":"record verified offline payment",id);
  return !!r.meta.changes;
 }
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {Frame} from "@/app/ui";
 import {getSiteContent} from "@/lib/admin-controls";
 
@@ -16,6 +17,6 @@ export default async function FAQ(){
  return <Frame><section className="wrap narrow prose info-page"><span className="eyebrow">STUDENT GUIDE</span><h1>Frequently asked questions</h1><p>Answers about applying, payment, and joining a course.</p>
  <div className="info-questions">{questions.map(([question,answer])=><details className="panel portal-panel portal-details" key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div>
  {faq&&<section className="panel portal-panel"><h2>Programme notes</h2><p className="info-preline">{faq}</p></section>}
- <div className="portal-links"><a className="btn primary" href="/help">Get help</a><a className="btn secondary" href="/#courses">Explore courses</a></div>
+ <div className="portal-links"><a className="btn primary" href="/help">Get help</a><Link className="btn secondary" href="/#courses">Explore courses</Link></div>
  </section></Frame>;
 }
