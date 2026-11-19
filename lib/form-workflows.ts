@@ -49,7 +49,7 @@ export async function saveCourse(slug:string,input:unknown,expectedBatch?:string
 
 export type AppFilters={q?:string;review?:string;payment?:string;batch?:string};
 export async function listApplications(slug="",page=1,filters:AppFilters={}){
- const match=slug,q=(filters.q??"").trim().slice(0,120).toLowerCase(),review=(filters.review==="pending"||REVIEW_STATES.some(x=>x===filters.review))?filters.review!:"",payment=["paid","unpaid","test_paid"].includes(filters.payment??"")?filters.payment!:"",batch=/^[a-z0-9-]{1,30}$/.test(filters.batch??"")?filters.batch!:"";
+ const match=slug,q=(filters.q??"").trim().slice(0,120).toLowerCase(),review=(filters.review==="pending"||REVIEW_STATES.some(x=>x===filters.review))?filters.review!:"",payment=["paid","unpaid","test_paid","refunded"].includes(filters.payment??"")?filters.payment!:"",batch=/^[a-z0-9-]{1,30}$/.test(filters.batch??"")?filters.batch!:"";
  const result=await db().prepare("SELECT id,slug,batch,name,email,college,created_at,review_state,payment_state,payment_id,class_access,amount,form_answers,order_id FROM applications WHERE (?='' OR slug=?) AND (?='' OR instr(lower(id||' '||name||' '||email||' '||college),?)>0) AND (?='' OR review_state=? OR (?='pending' AND review_state IN ('submitted','under_review'))) AND (?='' OR payment_state=?) AND (?='' OR batch=?) ORDER BY created_at DESC,id DESC LIMIT 51 OFFSET ?").bind(match,match,q,q,review,review,review,payment,payment,batch,batch,(page-1)*50).all<RecordRow>();
  return {rows:result.results.slice(0,50),next:result.results.length>50};
 }

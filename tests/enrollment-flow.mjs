@@ -38,6 +38,8 @@ for(const mode of ["test","live"]){
    const {id,token}=await created.json(),ref={id,token},cookie="scs_application="+id+"."+token;
    const billed=await req("/apply/billing/save",{method:"POST",headers:{cookie,"Content-Type":"application/x-www-form-urlencoded",Origin:O},body:new URLSearchParams({ref:id,name:"Flow Student",addressLine:"12 Test Street",addressExtra:"",city:"Greater Noida",state:"Uttar Pradesh",pin:"201310"})});
    assert.equal(billed.headers.get("Location"),"/apply/payment?ref="+id);
+   const payLink='href="/apply/billing?ref='+id+'"';
+   assert.ok((await html("/student?view=applications")).includes(payLink),"Unpaid application offers Complete payment");
    const amount=(await db.prepare("SELECT amount FROM applications WHERE id=?").bind(id).first()).amount;
    const order="order_Flow"+mode+n,payment="pay_Flow"+mode+n;
    provider.intercept({path:"/v1/orders",method:"POST"}).reply(200,{id:order,amount,currency:"INR",status:"created"},{headers:json});
@@ -56,6 +58,7 @@ for(const mode of ["test","live"]){
    const status=await(await req("/api/applications/status",{method:"POST",headers:json,body:JSON.stringify(ref)})).json();
    assert.equal(status.enrolled,true);
    assert.match(await html("/apply?ref="+id,{cookie}),/Enrollment confirmed/);
+   assert.ok(!(await html("/student?view=applications")).includes(payLink),"Paid application no longer offers payment");
    return {id,slug:row.slug};
   }
   const c=await enroll("c-arrays-and-strings",1,"checkout");
@@ -104,6 +107,12 @@ for(const mode of ["test","live"]){
   for(const stmt of (await readFile("drizzle/0025_enroll_verified_payments.sql","utf8")).split("--> statement-breakpoint"))if(stmt.trim())await db.prepare(stmt.trim()).run();
   const after=Object.fromEntries((await db.prepare("SELECT id,review_state,class_access FROM applications WHERE id LIKE 'SCS-0025%'").all()).results.map(r=>[r.id,r.review_state+"/"+r.class_access]));
   assert.deepEqual(after,{"SCS-0025AAAAAAAAAAAAAAA1":"accepted/1","SCS-0025AAAAAAAAAAAAAAA2":"accepted/1","SCS-0025AAAAAAAAAAAAAAA3":"declined/0","SCS-0025AAAAAAAAAAAAAAA4":"accepted/0","SCS-0025AAAAAAAAAAAAAAA5":"submitted/0"});
+  // Declining an application that was paid warns the admin to refund and records it in the audit.
+  const declined=await req("/forms/admin/review",{method:"POST",headers:{...admin,"Content-Type":"application/x-www-form-urlencoded",Origin:O},body:new URLSearchParams({id:c.id,slug:"c-by-horesh-sir",review:"declined"}).toString()});
+  assert.match(declined.headers.get("Location"),/message=reviewed-refund/);
+  assert.match(await html(declined.headers.get("Location"),admin),/This student already paid: issue the refund in Razorpay/);
+  assert.ok(await db.prepare("SELECT 1 FROM admin_audit WHERE target=? AND action LIKE 'declined after payment%'").bind(c.id).first());
+  assert.equal((await db.prepare("SELECT class_access FROM applications WHERE id=?").bind(c.id).first()).class_access,0);
   console.log("enrollment flow ("+mode+"): ok");
  }finally{await mf.dispose();}
 }

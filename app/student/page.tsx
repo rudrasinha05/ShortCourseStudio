@@ -102,7 +102,7 @@ export default async function Student({searchParams}:{searchParams:Promise<{mess
   </>}
   {view==="wishlist"&&<WishlistPanel courses={publicCourses.map(wishlistCourseSummary)} selectedSlug={selectedSlug}/>}
   {view==="applications"&&<section className="portal-section" id="applications"><h2>My applications</h2>
-   {rows.length>0&&<ul className="portal-checklist panel">{rows.map(r=><li key={r.id}><strong>{courseMap.get(r.slug)?.title??r.slug}</strong><span>{r.id} · {reviewLabels[r.review_state]??r.review_state} · {paymentLabel(r.payment_state)}</span><a className="textlink" href={"/apply?ref="+r.id}>Open application</a></li>)}</ul>}
+   {rows.length>0&&<ul className="portal-checklist panel">{rows.map(r=><li key={r.id}><strong>{courseMap.get(r.slug)?.title??r.slug}</strong><span>{r.id} · {reviewLabels[r.review_state]??r.review_state} · {paymentLabel(r.payment_state)}</span><a className="textlink" href={"/apply?ref="+r.id}>Open application</a>{r.payment_state==="unpaid"&&r.review_state!=="declined"&&!cDayNumber(r.slug)&&<a className="textlink" href={"/apply/billing?ref="+encodeURIComponent(r.id)}>Complete payment</a>}</li>)}</ul>}
    <details className="panel portal-panel portal-details"><summary>Link a previous application</summary><form className="formpanel" method="post" action="/forms/student/claim"><h3>Link an existing application</h3><p>Use your reference and tracking code. The application email must match your signed-in account.</p>
     <label>Application reference<input required name="id" maxLength={30} autoComplete="off"/></label>
     <label>Tracking code<input required name="code" type="password" minLength={64} maxLength={64} autoComplete="off"/></label><button className="btn primary">Link application</button>
