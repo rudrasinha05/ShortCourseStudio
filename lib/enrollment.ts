@@ -29,6 +29,19 @@ export function paymentMode():"test"|"live"|null{const m=cfg.PAYMENTS_MODE;retur
 export async function getSiteControls(){
  return cfg.DB?(await db().prepare("SELECT intake_paused,announcement FROM site_controls WHERE id=1").first<{intake_paused:number;announcement:string}>()??{intake_paused:0,announcement:""}):{intake_paused:0,announcement:""};
 }
+// Show course information publicly without exposing the assigned instructor.
+function publicTitle(title:string,track:string,instructor?:string){
+ const value=title==="C by Horesh Sir"?"C Programming":title;
+ if(!instructor?.trim())return value;
+ const pos=value.toLowerCase().indexOf(instructor.toLowerCase());
+ if(pos<0)return value;
+ return (value.slice(0,pos)+value.slice(pos+instructor.length)).replace(/\s+(?:by|with)\s*$/i,"").replace(/[\s\-–—·:]+$/,"").trim()||track;
+}
+function publicSummary(value:string,instructor?:string){
+ if(!instructor?.trim())return value;
+ const pos=value.toLowerCase().indexOf(instructor.toLowerCase());
+ return pos<0?value:value.slice(0,pos)+"the teaching team"+value.slice(pos+instructor.length);
+}
 export async function getCourses(){
  let intakePaused=false, uploaded:Course[]=[], rows:Overrides[]=[], catalogue:{slug:string;visibility:string;definition:string|null}[]=[], limits:{slug:string;batch:string;application_limit:number;closes_at:string;applications:number;fee_paise:number|null}[]=[], faculty:{slug:string;batch:string;faculty:string}[]=[];
  if(cfg.DB){
@@ -64,7 +77,7 @@ export async function getCourses(){
   const rules=limits.find(r=>r.slug===course.slug&&r.batch===batch);
   const constraint=rules?.closes_at&&rules.closes_at<=now?"deadline":rules?.application_limit&&rules.applications>=rules.application_limit?"full":null;
   const visibility=catalogue.find(x=>x.slug===course.slug)?.visibility??"published";
-  return {...course,instructor,intakePaused,visibility,intakeConstraint:constraint,feePaise:rules?.fee_paise??PAISE,needsInstructor:!!course.exclusive&&!course.instructor,title:o?.title??course.title,blurb:o?.blurb??course.blurb,outcome:o?.outcome??course.outcome,days:o?.days?JSON.parse(o.days) as Day[]:course.days,schedule:o?.schedule||"",mode:o?.mode||"",batch,status};
+  return {...course,instructor,intakePaused,visibility,intakeConstraint:constraint,feePaise:rules?.fee_paise??PAISE,needsInstructor:!!course.exclusive&&!course.instructor,title:publicTitle(o?.title??course.title,course.track,instructor),blurb:publicSummary(o?.blurb??course.blurb,instructor),outcome:publicSummary(o?.outcome??course.outcome,instructor),days:o?.days?JSON.parse(o.days) as Day[]:course.days,schedule:o?.schedule||"",mode:o?.mode||"",batch,status};
  });
 }
 export function publicCatalogue<T extends {slug:string;visibility?:string}>(courses:T[]){const bySlug=new Map(courses.map(c=>[c.slug,c]));return courses.filter(c=>c.visibility!=="draft"&&c.visibility!=="archived"&&(!cDayNumber(c.slug)||bySlug.get(CRASH_SLUG)?.visibility==="published"));}
