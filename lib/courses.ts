@@ -212,7 +212,7 @@ export const CRASH_SLUG="c-by-horesh-sir";
 export const C_LAUNCH_START="2026-11-26T20:00";
 export const C_LAUNCH_SCHEDULE="Starts 26 November 2026 at 8:00 PM IST";
 export const C_LAUNCH_MODE="Online";
-export const CRASH_TITLE="C by Horesh Sir";
+export const CRASH_TITLE="C Programming";
 export const C_DAY_SLUGS=cProgramming.map(c=>c.slug);
 export const cDayNumber=(slug:string)=>C_DAY_SLUGS.indexOf(slug)+1;
 export const registrationSlug=(slug:string)=>cDayNumber(slug)?CRASH_SLUG:slug;
@@ -230,7 +230,7 @@ export const regularModules=(track:Track)=>regularCourses.filter(course=>course.
 const facultyCourses:Course[]=facultyTemplates.map((item)=>{
  const modules=regularModules(item.track);
  return {
-  slug:item.slug,track:item.track,title:item.track+(item.instructor?" by "+item.instructor:""),exclusive:true,
+  slug:item.slug,track:item.track,title:item.track+" · Intensive "+(facultyTemplates.filter(x=>x.track===item.track).findIndex(x=>x.slug===item.slug)+1),exclusive:true,
   instructor:item.instructor??undefined,
   blurb:"One instructor covers the five regular modules in a single 15-hour course.",
   outcome:"Complete an integrated practical exercise drawing on all five modules.",
