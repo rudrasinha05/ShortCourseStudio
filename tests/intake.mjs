@@ -31,7 +31,7 @@ try{
  const admissions="/admin?section=courses&view=admissions";
  const unselected=await html(admissions,admin);
  assert.match(unselected,/aria-label="Courses open for applications"/);
- assert.match(unselected,/aria-label="Load C by Horesh Sir"/);
+ assert.match(unselected,/aria-label="Load C Programming"/);
  assert.doesNotMatch(unselected,/Save admissions settings|Working on/);
  const selected=await html(admissions+"&course="+slug,admin);
  assert.match(selected,/Save admissions settings/);
