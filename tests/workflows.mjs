@@ -22,23 +22,23 @@ try{
  const catalog=await(await req("/")).text();
  const state=await(await req("/api/admin",null,admin)).json();
  assert.equal(state.courses.length,36);
- assert.match(catalog,/<h1 class="poster-title"><span class="poster-letter">C<\/span>.*?Horesh Sir.*?<\/h1>/s);
- assert.match(catalog,/M.Tech from NSUT, Delhi/);
- assert.match(catalog,/DSA Tech Trainer at GL Bajaj/);
+ assert.match(catalog,/class="poster-course-word">Programming<\/span>/);
+ assert.doesNotMatch(catalog,/Horesh Sir|M.Tech from NSUT, Delhi|DSA Tech Trainer at GL Bajaj/);
+
  if(!afterLaunch)assert.ok(catalog.includes('datetime="'+launchTime+'"')||catalog.includes('dateTime="'+launchTime+'"'));
  assert.match(catalog,/Certificate included/);
  const crashBanner=catalog.match(/<article class="upcoming-banner featured crash-banner">.*?<\/article>/s)?.[0]??"";
  assert.match(crashBanner,/Exclusive Short-Term Course/);
  assert.match(crashBanner,/C Programming/);
  assert.match(crashBanner,/pointers, memory and data structures/);
- assert.match(crashBanner,/<strong>700\+ Students<\/strong>/);
- assert.match(crashBanner,/Landed jobs with Horesh Sir’s guidance/);
+ assert.match(crashBanner,/class="poster-coding-art"/);
+ assert.doesNotMatch(crashBanner,/faculty-photo|faculty-caption|Horesh Sir|portrait/i);
  assert.match(crashBanner,/15 hours/);
  assert.match(crashBanner,/Certificate included/);
  assert.match(crashBanner,/href="#c-programming"/);
  assert.doesNotMatch(crashBanner,/href="\/apply/);
  assert.doesNotMatch(crashBanner,/crash course/i);
- assert.match(catalog,/src="\/horesh-sir\.webp"/);
+ assert.doesNotMatch(catalog,/src="\/horesh-sir\.webp"/);
  assert.match(catalog,/class="c-code-motif"/);
  assert.match(crashBanner,/for \(;;\)/);
  assert.match(crashBanner,/Once in a Lifetime Opportunity/);
@@ -81,7 +81,7 @@ try{
  assert.ok(ranked.includes("<h1>"+coursesForBanners[0].title+"</h1>"));
  assert.match(ranked,/aria-roledescription="carousel"/);
  assert.equal((ranked.match(/aria-roledescription="slide"/g)||[]).length,5);
- assert.match(ranked,/images.example.invalid\/faculty.jpg/);
+ assert.doesNotMatch(ranked,/images.example.invalid\/faculty.jpg|faculty-photo|faculty-caption/);
  assert.equal((ranked.match(/<article class="upcoming-banner featured crash-banner">/g)||[]).length,1);
  assert.match((await updateBanner("c-by-horesh-sir","launch",{visible:"no"})).headers.get("Location"),/message=banner-saved/);
  assert.doesNotMatch(await(await req("/")).text(),/<h1 class="poster-title"><span class="poster-letter">C<\/span>.*?Horesh Sir.*?<\/h1>/s);
