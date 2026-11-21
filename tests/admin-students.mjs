@@ -36,7 +36,7 @@ try{
  assert.match(profile,/Interest: Data Analytics/);
  assert.match(profile,/Connects with your skills: Python/);
  const courseHistory=profile.split('aria-label="Student course history"')[1].split("</table>")[0];
- assert.match(courseHistory,/C by Horesh Sir[\s\S]*?Not paid[\s\S]*?Not confirmed/);
+ assert.match(courseHistory,/C Programming[\s\S]*?Not paid[\s\S]*?Not confirmed/);
  assert.match(courseHistory,/Networking Fundamentals[\s\S]*?Paid[\s\S]*?>Enrolled</);
  assert.match(courseHistory,/Under review/);
  assert.doesNotMatch(profile,/other@example\.invalid|private-hash/);
