@@ -31,7 +31,7 @@ try{
  assert.match(crashBanner,/Exclusive Short-Term Course/);
  assert.match(crashBanner,/C Programming/);
  assert.match(crashBanner,/pointers, memory and data structures/);
- assert.match(crashBanner,/class="poster-coding-art"/);
+ assert.match(crashBanner,/class="subject-art poster-coding-art"/);
  assert.doesNotMatch(crashBanner,/faculty-photo|faculty-caption|Horesh Sir|portrait/i);
  assert.match(crashBanner,/15 hours/);
  assert.match(crashBanner,/Certificate included/);
