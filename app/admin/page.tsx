@@ -148,7 +148,7 @@ async function ClassSchedule({c}:{c:Course}){
 }
 async function CourseBanners({c}:{c:Course}){
  const [crashBanner,courseBanner]=await Promise.all([getBannerFields(crashCourse.slug,crashCourse.batch),isCShortCourse(c.slug)?null:getBannerFields(c.slug,c.batch)]);
- return <section className="portal-section"><h2>Course banners</h2><p>Set the instructor, image and timing for homepage batch promotions.</p>
+ return <section className="portal-section"><h2>Course banners</h2><p>Set the schedule and visibility of course-focused promotions. Instructor names and photos are not displayed.</p>
  {courseBanner?<BannerForm id="course-banner" heading={c.title} slug={c.slug} batch={c.batch} data={courseBanner}/>:<BannerForm id="crash-banner" heading={crashCourse.title} slug={crashCourse.slug} batch={crashCourse.batch} data={crashBanner}/>}
  </section>;
 }
@@ -178,13 +178,13 @@ function BannerForm({id,heading,slug,batch,data}:{id:string;heading:string;slug:
  return <form id={id} className="panel formpanel" action="/forms/admin/banner" method="post">
  <h2>Homepage banner</h2><p>{heading} · Batch {batch}</p>
  <input type="hidden" name="slug" value={slug}/><input type="hidden" name="batch" value={batch}/>
- <label>Faculty name<input name="faculty" maxLength={100} defaultValue={data.faculty}/></label>
- <label>Qualification<input name="qualification" maxLength={150} defaultValue={data.qualification}/></label>
- <label>Working profile<input name="profile" maxLength={180} defaultValue={data.profile}/></label>
- <label>Faculty photo URL<input name="photo" type={slug===crashCourse.slug?"text":"url"} maxLength={1500} defaultValue={data.photo} placeholder="https://…"/></label>
+ <input type="hidden" name="faculty" value={data.faculty}/>
+ <input type="hidden" name="qualification" value={data.qualification}/>
+ <input type="hidden" name="profile" value={data.profile}/>
+ <input type="hidden" name="photo" value={data.photo}/>
  <label>Start date and time (IST)<input name="startsAt" type="datetime-local" defaultValue={data.starts_at}/></label>
  <label>Timing or batch notes<input name="timing" maxLength={180} defaultValue={data.timing}/></label>
  <label className="check"><input type="checkbox" name="visible" value="yes" defaultChecked={!!data.visible}/> Show on homepage</label>
- <p>{slug===crashCourse.slug?"Leave the start and photo blank to use the launch defaults.":"Leave start time blank to use the first scheduled class, when available. Saving the instructor does not open applications."} Past batches are automatically removed.</p>
+ <p>{slug===crashCourse.slug?"Leave start time blank to use the launch default.":"Leave start time blank to use the first scheduled class, when available."} Past batches are automatically removed.</p>
  <button className="btn primary">Save homepage banner</button></form>
 }
