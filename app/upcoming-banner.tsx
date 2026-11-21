@@ -1,6 +1,6 @@
 import {BatchCountdown} from "./batch-countdown";
 import {canApply,intakeStatus,applicationsStatus} from "@/lib/enrollment";
-import {ArrowRight,Award,CalendarDays,Clock3,Code2,GraduationCap,Terminal,TrendingUp} from "lucide-react";
+import {ArrowRight,Award,CalendarDays,Clock3,Code2,Terminal} from "lucide-react";
 import {bannerStart,getUpcomingBanners} from "@/lib/course-banners";
 
 type Item=Awaited<ReturnType<typeof getUpcomingBanners>>[number];
@@ -13,20 +13,12 @@ const cSnippet=[
  '    }',
  '}',
 ].join("\n");
-function FacultyPhoto({item,featured}:{item:Item;featured:boolean}){
- return item.photo?<img className="faculty-photo" src={item.photo} alt={item.faculty?item.faculty+" portrait":"Course faculty portrait"} referrerPolicy="no-referrer" loading={featured?"eager":"lazy"}/>:<div className="faculty-mark" aria-hidden="true">{item.crash?<Code2 size={56}/>:<GraduationCap size={50}/>}</div>;
-}
-
 function BatchTime({item}:{item:Item}){
  return <div className="upcoming-time"><CalendarDays size={20} aria-hidden="true"/><div>
    <strong>{item.start?<time dateTime={item.start+"+05:30"}>{bannerStart(item.start)}</time>:"Date and time to be announced"}</strong>
    {item.timing&&<span>{item.timing}</span>}
    {item.mode&&<span>{item.mode}</span>}
  </div></div>;
-}
-
-function FacultyCaption({item}:{item:Item}){
- return <div className="faculty-caption"><span>Course instructor</span><strong>{item.faculty||"To be announced"}</strong>{item.qualification&&<p>{item.qualification}</p>}{item.profile&&<p>{item.profile}</p>}</div>;
 }
 
 function CoursePoster({item,featured,heroTitle,now}:{item:Item;featured:boolean;heroTitle:boolean;now:number}){
@@ -36,7 +28,7 @@ function CoursePoster({item,featured,heroTitle,now}:{item:Item;featured:boolean;
    <pre className="c-code-motif" aria-hidden="true">{cSnippet}</pre>
    <div className="upcoming-content">
     <span className="poster-kicker"><Terminal size={15} aria-hidden="true"/> Exclusive Short-Term Course</span>
-    <Heading className="poster-title"><span className="poster-letter">C</span>{" "}<span className="poster-by">by <strong>Horesh Sir</strong></span></Heading>
+    <Heading className="poster-title"><span className="poster-letter">C</span><span className="poster-course-word">Programming</span></Heading>
     <p className="poster-deck"><strong>C Programming</strong> from your first compile to <strong>pointers, memory and data structures.</strong></p>
     <BatchTime item={item}/>
     {canApply(item)&&item.start&&<BatchCountdown target={item.when} initialNow={now}/>}
@@ -48,11 +40,7 @@ function CoursePoster({item,featured,heroTitle,now}:{item:Item;featured:boolean;
    </div>
   </div>
   <div className="upcoming-faculty">
-   <div className="poster-portrait"><FacultyPhoto item={item} featured={featured&&heroTitle}/><span className="poster-c-mark" aria-hidden="true">[ C ]</span></div>
-   <div className="poster-faculty-info">
-    <div className="poster-impact"><TrendingUp size={20} aria-hidden="true"/><div className="poster-impact-copy"><strong>700+ Students</strong><p>Landed jobs with Horesh Sir’s guidance</p></div></div>
-    <FacultyCaption item={item}/>
-   </div>
+   <div className="subject-art poster-coding-art" aria-hidden="true"><div className="subject-art-code"><strong>C</strong><pre>{motifs.C.join("\n")}</pre></div></div>
   </div>
  </article>;
 }
@@ -84,8 +72,7 @@ function Banner({item,featured=false,heroTitle=false,now}:{item:Item;featured?:b
    </div>
   </div>
   <div className="upcoming-faculty">
-   {item.photo?<FacultyPhoto item={item} featured={featured&&heroTitle}/>:<div className="subject-art" aria-hidden="true"><div className="subject-art-code"><strong>{item.tag}</strong><pre>{(motifs[item.tag]??motifs.C).join("\n")}</pre></div></div>}
-   <FacultyCaption item={item}/>
+   <div className="subject-art" aria-hidden="true"><div className="subject-art-code"><strong>{item.tag}</strong><pre>{(motifs[item.tag]??motifs.C).join("\n")}</pre></div></div>
   </div>
  </article>;
 }
