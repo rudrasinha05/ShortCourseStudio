@@ -27,7 +27,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{signed_
   <section className="hero"><div className="wrap hero-stack">
    {slides.length?<HomeCarousel slides={slides.map((item,i)=>({id:item.slug,title:item.title,content:<FeaturedBanner item={item} heroTitle={i===0} now={now}/>}))}/>:<div className="homepage-intro">
     <span className="eyebrow">SHORT-TERM TRAINING COURSES</span><h1>{content.headline||SITE_NAME}</h1>
-    <p>{content.intro||"Choose a regular five-day module or take an exclusive 15-hour course that covers five modules with one instructor."}</p>
+    <p>{content.intro||"Choose a regular five-day module or take an exclusive 15-hour course covering five modules."}</p>
     <Facts/><div className="actions"><a className="btn primary" href="#courses">Browse course catalogue <ArrowRight size={18}/></a><a className="btn hero-download" href={content.brochure||"/brochure.pdf"} target="_blank" rel="noopener">Programme brochure <ArrowDownToLine size={17}/></a></div>
    </div>}
    <ProgrammeGlance brochure={content.brochure||"/brochure.pdf"}/>
@@ -37,7 +37,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{signed_
    <nav className="subject-nav" aria-label="Course formats"><a href="#regular-courses">Regular courses</a><a href="#exclusive-courses">Exclusive courses</a></nav>
    <section className="course-format" id="regular-courses" aria-labelledby="regular-heading">
     <h3 id="regular-heading">Regular Short-Term Courses</h3>
-    <p>Each subject has five separate course cards. Each card has its own five-day plan, batch and application. Instructors can differ by course.</p>
+    <p>Each subject has five separate course cards, each with its own five-day plan, batch and application.</p>
     <nav className="subject-nav" aria-label="Jump to regular subject">{REGULAR_TRACKS.map(track=><a href={"#"+TRACK_DETAILS[track].id} key={track}><span>{TRACK_DETAILS[track].tag}</span> {TRACK_DETAILS[track].label}</a>)}</nav>
     {[...REGULAR_TRACKS,...(courses.some(c=>c.track==="C Programming"&&(c.slug.startsWith("faculty-")||c.slug.startsWith("studio-"))&&!c.exclusive)?["C Programming" as const]:[])].map((track,i)=>{
      const items=courses.filter(c=>c.track===track&&!c.exclusive&&!cDayNumber(c.slug));
@@ -46,7 +46,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{signed_
       <div className="track-heading"><span className="track-num">{String(i+1).padStart(2,"0")}</span><div><h4>{track}</h4><p>{details.description}</p></div><small>{items.length} courses</small></div>
       <div className="grid">{items.map((c,j)=><a className="course" href={"/courses/"+c.slug} key={c.slug}>
        <div className="cardtop"><span className="course-code">{details.tag}-{String(j+1).padStart(2,"0")}</span><Badge status={intakeStatus(c)}/></div>
-       <h4>{c.title}</h4><p>{c.blurb}</p><p className="course-instructor">{c.instructor??"Instructor to be announced"}</p>
+       <h4>{c.title}</h4><p>{c.blurb}</p>
        <ul className="course-meta" aria-label="Course summary"><li>{c.level}</li><li>5 days</li><li>{priceText(c.feePaise)}</li></ul>
        <div className="cardbottom"><strong>View syllabus <ArrowRight size={15}/></strong></div>
       </a>)}</div>
@@ -56,7 +56,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{signed_
    <section className="course-format" id="exclusive-courses" aria-labelledby="exclusive-heading">
     <h3 id="exclusive-heading">Exclusive Short-Term Courses</h3>
     {cCourse&&<section className="track exclusive-c-track" id="c-programming">
-     <div className="track-heading"><div><h4>{cCourse.title}</h4><p>{cCourse.instructor} · 5 days · 15 hours total</p></div><Badge status={intakeStatus(cCourse)}/></div>
+     <div className="track-heading"><div><h4>{cCourse.title}</h4><p>5 days · 15 hours total</p></div><Badge status={intakeStatus(cCourse)}/></div>
      <div className="actions exclusive-actions"><strong>{priceText(cCourse.feePaise)} for all five days</strong><a className="btn secondary" href={"/courses/"+cCourse.slug}>View full course <ArrowRight size={15}/></a>{canApply(cCourse)?<a className="btn primary" href={"/apply?course="+cCourse.slug}>{content.cta||"Start application"} <ArrowRight size={15}/></a>:<p>{enrollmentUnavailable(intakeStatus(cCourse))}</p>}</div>
      <div className="grid">{courses.filter(c=>cDayNumber(c.slug)).map(c=><a className="course" href={"/courses/"+c.slug} key={c.slug}>
       <div className="cardtop"><span className="course-code">Day {cDayNumber(c.slug)}</span></div><h4>{c.title}</h4><p>{c.blurb}</p>
@@ -67,7 +67,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{signed_
      <div className="track-heading"><div><h4>Faculty-led intensives</h4><p>Each listing is a complete course with a five-session plan.</p></div></div>
      <div className="grid">{exclusive.map(c=><a className="course" href={(c.slug.startsWith("faculty-")||c.slug.startsWith("studio-")?"/courses/":"/faculty-courses/")+c.slug} key={c.slug}>
       <div className="cardtop"><span className="course-code">{TRACK_DETAILS[c.track].tag} · EXCLUSIVE</span><Badge status={intakeStatus(c)}/></div>
-      <h4>{c.title}</h4><p>{c.instructor??"Instructor to be announced"}</p>
+      <h4>{c.title}</h4><p>{c.blurb}</p>
       <ul className="course-meta" aria-label="Exclusive course summary"><li>5 sessions</li><li>15 hours total</li><li>{priceText(c.feePaise)}</li></ul>
       <div className="cardbottom"><strong>View intensive plan <ArrowRight size={15}/></strong></div>
      </a>)}</div>
