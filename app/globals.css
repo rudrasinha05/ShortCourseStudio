@@ -488,3 +488,11 @@ footer{background:#fff}.footer{padding-block:16px}.footer p{font-size:12px}.foot
 .profile-nav .profile-avatar{width:34px;height:34px}.profile-placeholder{display:flex;align-items:center;justify-content:center;color:var(--green)}
 .profile-page{padding:44px 0 60px}.profile-page h1{font-size:40px}.profile-grid{display:grid;grid-template-columns:minmax(230px,320px) minmax(0,1fr);gap:24px;margin-top:28px;align-items:start}.profile-card{padding:26px;margin-bottom:20px;overflow-wrap:anywhere}.profile-card>.profile-avatar{width:108px;height:108px}.profile-card h2{margin:18px 0 12px}.photo-editor{display:grid;gap:14px;margin-top:24px}.photo-editor input{max-width:100%;font-size:13px}.photo-editor small{color:var(--muted)}.profile-links{display:grid;gap:14px}.profile-links a{padding:12px;background:var(--soft);border-radius:8px;font-weight:600}.application-profile{display:flex;align-items:center;gap:16px;padding:18px;background:var(--soft);border-radius:12px;margin:18px 0}.application-profile p{margin:4px 0;overflow-wrap:anywhere;font-size:14px}.application-profile>div{min-width:0}
 @media(max-width:660px){.profile-grid{grid-template-columns:1fr}.profile-page{padding-top:28px}.profile-card{padding:20px}.profile-nav .profile-avatar{width:30px;height:30px}.application-profile{padding:12px}}
+
+/* Identity-free public course poster layouts */
+.poster-course-word{font-size:.61em;line-height:1.05;font-weight:850;letter-spacing:-.04em;color:#fff;overflow-wrap:anywhere}
+.crash-banner .upcoming-faculty{display:flex;align-items:stretch;min-height:235px;grid-template-rows:none}
+.crash-banner .poster-coding-art{flex:1;min-height:260px;background:radial-gradient(ellipse at 45% 40%,#23517c,#09182e 75%),repeating-linear-gradient(0deg,transparent 0 26px,#edf8ff16 26px 27px)}
+.crash-banner .poster-coding-art .subject-art-code{width:min(85%,340px);transform:rotate(-3deg)}
+.subject-poster .upcoming-faculty{grid-template-rows:1fr}
+@media(max-width:660px){.crash-banner .poster-coding-art{min-height:160px}.crash-banner .upcoming-faculty{min-height:160px}}
